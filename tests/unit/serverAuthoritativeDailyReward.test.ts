@@ -49,20 +49,13 @@ const HOIST_WEEKLY_DAILY_REWARDS = vi.hoisted(
 );
 
 vi.mock("@/lib/db/access", () => ({
-  createServiceRoleClient: vi.fn(() => ({
-    rpc: vi.fn(async (fn: string) => {
-      if (fn === "now_iso") {
-        return { data: `${mockServerToday.value}T12:00:00.000Z`, error: null };
-      }
-      return { data: null, error: { message: `unknown rpc: ${fn}` } };
-    }),
-  })),
+
   // BUG-077: canonical boundary names mirror the legacy alias.
   getDbClient: vi.fn(() => ({ rpc: vi.fn(async (fn: string) => { if (fn === "now_iso") { return { data: `${mockServerToday.value}T12:00:00.000Z`, error: null }; } return { data: null, error: { message: `unknown rpc: ${fn}` } }; }), })),
   requireDbClient: () => ({ from: vi.fn() }),
   isDbClientConfigured: vi.fn(() => true),
   createClient: vi.fn(async () => null),
-  isServiceRoleConfigured: vi.fn(() => true),
+
   isSupabaseConfigured: vi.fn(() => true),
 }));
 

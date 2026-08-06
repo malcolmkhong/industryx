@@ -16,12 +16,15 @@ export {
   TIER_EMOJI_MAP,
 } from './mappings';
 
-// Tier definitions
-export { TIER_INFO } from './tiers';
+// Tier definitions (canonical location: src/lib/game/progression/tiers.ts
+// and src/components/game/shared/tierColors.ts). Previously this index
+// re-exported from the deprecated redirect at ./tiers which has been
+// removed; callers should import from the canonical locations directly.
+export { TIER_INFO } from '../../progression/tiers';
 export {
   getTierColorClasses,
   TIER_COLOR_MAP,
   TIER_NUMBER_COLOR_MAP,
   type TierColor,
   type TierColorClasses,
-} from './tiers';
+} from '../../../../components/game/shared/tierColors';

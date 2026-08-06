@@ -134,13 +134,13 @@ const HOIST_CONTRACT_TEMPLATES = vi.hoisted(() => [
 // ─── MOCKS ──────────────────────────────────────────────────────────
 
 vi.mock("@/lib/db/access", () => ({
-  createServiceRoleClient: vi.fn(() => null),
+
   // BUG-077: canonical boundary names mirror the legacy alias.
   getDbClient: vi.fn(() => null),
   requireDbClient: () => ({ from: vi.fn() }),
   isDbClientConfigured: vi.fn(() => true),
   createClient: vi.fn(async () => null),
-  isServiceRoleConfigured: vi.fn(() => false),
+
   isSupabaseConfigured: vi.fn(() => false),
 }));
 

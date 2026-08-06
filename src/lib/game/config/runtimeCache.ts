@@ -112,7 +112,7 @@ export let configLoadedAt = Date.now();
 export let configVersion = 0; // incremented on each update
 
 export { getStreakMultiplier } from "../shared/utils/streakMultiplier";
-export { TIER_INFO } from "../shared/icons/tiers";
+export { TIER_INFO } from "../progression/tiers";
 
 // ============================================
 // Migration map: old hardcoded ID -> new Supabase ID

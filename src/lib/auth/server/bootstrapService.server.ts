@@ -24,7 +24,7 @@
  * returning guest progress cannot depend on the legacy cloud-sync load path.
  */
 
-import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
+import { createClient as createServerSupabaseClient } from "@/lib/db/access";
 import {
   buildCompleteFullStateForServerRow,
   loadServerGameStateLite,

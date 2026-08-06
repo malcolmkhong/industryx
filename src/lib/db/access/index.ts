@@ -16,17 +16,17 @@
  *
  * The anon client's lifecycle stays per-request inside the boundary; only
  * the import path is unified.
+ *
+ * BUG-077: the boundary no longer re-exports the legacy aliases
+ * (createServiceRoleClient, isServiceRoleConfigured). All code must
+ * import the canonical names below.
  */
 
-// Public API (preferred names)
+// Public API (canonical only)
 export {
   getDbClient,
   requireDbClient,
   isDbClientConfigured,
-  // Legacy aliases re-exported here so existing consumers keep working
-  // during the migration. New code should prefer getDbClient().
-  createServiceRoleClient,
-  isServiceRoleConfigured,
   // Cookie-aware anon client factory (per-request). Re-exported from
   // @/lib/supabase/server so tests can mock both clients through a
   // single boundary path.

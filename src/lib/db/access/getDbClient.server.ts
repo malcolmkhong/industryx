@@ -6,15 +6,20 @@
  * clients hold no per-user auth state (autoRefreshToken + persistSession
  * are both off), so reuse is safe.
  *
- * Public API:
+ * Public API (canonical surface — BUG-077):
  *   - getDbClient():          SupabaseClient | null  (null = env not configured)
  *   - requireDbClient():      SupabaseClient        (throws DbClientNotConfiguredError)
  *   - isDbClientConfigured(): boolean
- *   - createServiceRoleClient(): legacy alias for getDbClient()
- *   - isServiceRoleConfigured():  legacy alias for isDbClientConfigured()
+ *   - createClient():         Promise<SupabaseClient>  (per-request cookie-aware anon client)
+ *   - isSupabaseConfigured(): boolean                  (env check for anon client)
  *
  * The .server.ts suffix enforces Next.js server-only execution via the
  * bundler; importing this module from a client component is a build error.
+ *
+ * Tests can mock the entire server-side Supabase surface through a single
+ * import path:
+ *
+ *   vi.mock('@/lib/db/access', () => mockSupabaseServer());
  */
 
 import {
@@ -80,53 +85,24 @@ export function isDbClientConfigured(): boolean {
   return getDbClient() !== null;
 }
 
-// ─── Legacy aliases (kept for the migration window) ──────────────────────
-//
-// New code MUST import from `@/lib/db/access` and prefer getDbClient() or
-// requireDbClient(). The two names below preserve the existing public
-// surface used by 66 source files and the test mock factory; deprecate
-// after the migration completes (tracked in BUG-077).
-//
-// BUG-077 Task 1: legacy alias asserts reference identity with the
-// canonical singleton so any future drift that introduces per-call
-// client construction becomes a hard error instead of a silent
-// GoTrueClient "multiple instances" regression.
-//
-// @deprecated Import from "@/lib/db/access" instead.
-/**
- * @deprecated Use `getDbClient()` from `@/lib/db/access`.
- */
-export function createServiceRoleClient(): SupabaseClient | null {
-  const client = getDbClient();
-  if (client !== _cached) {
-    throw new Error(
-      "[BUG-077] createServiceRoleClient drifted from getDbClient singleton",
-    );
-  }
-  return client;
-}
-
-/**
- * @deprecated Use `isDbClientConfigured()` from `@/lib/db/access`.
- */
-export function isServiceRoleConfigured(): boolean {
-  return isDbClientConfigured();
-}
-
-// ─── Cookie-aware anon client surface (re-exported for test mocking) ───
+// ─── Cookie-aware anon client surface ───────────────────────────────
 //
 // The anon client lifecycle is per-request because it owns the request's
 // cookie store; this factory must NOT be memoized. Tests can mock the
 // entire server-side Supabase surface by mocking one boundary module.
-//
-// @deprecated Use `isSupabaseConfigured()` from `@/lib/supabase/server`
-// directly for new code. Re-exported here only so a single
-// vi.mock('@/lib/db/access', ...) covers both factories.
 
 /**
- * @deprecated Use `createClient` from `@/lib/supabase/server` for new code.
+ * Per-request Supabase server client with cookie-bound auth.
+ *
+ * This client MUST be created fresh for each request because it owns the
+ * cookie store of the current request. See Supabase SSR docs: "A new
+ * client must be created for each server render — never share a client
+ * across requests."
+ *
+ * Do not use this factory for service-role access; use `getDbClient()`
+ * or `requireDbClient()` instead.
  */
-export async function createClient() {
+export async function createClient(): Promise<SupabaseClient> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -155,7 +131,8 @@ export async function createClient() {
 }
 
 /**
- * @deprecated Use `isSupabaseConfigured()` from `@/lib/supabase/server`.
+ * Check if Supabase anon client env vars are present. Used to gracefully
+ * degrade when Supabase is unavailable.
  */
 export function isSupabaseConfigured(): boolean {
   return !!(

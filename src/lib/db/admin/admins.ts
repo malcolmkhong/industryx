@@ -152,7 +152,7 @@ export function clearAdminCache(): void {
  * Check if the admin_users table is reachable.
  */
 export function isAdminsAvailable(): boolean {
-  // Both createClient and createServiceRoleClient return null when not configured.
+  // Both createClient and getDbClient return null when not configured.
   // We don't actually need a client here — this is a fast precheck before
   // hitting the table.
   return !!(

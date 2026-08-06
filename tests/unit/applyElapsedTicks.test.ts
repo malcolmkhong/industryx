@@ -11,12 +11,7 @@ import { describe, it, expect, vi } from "vitest";
 
 // Mock the upstream modules BEFORE importing the helper.
 vi.mock('@/lib/db/access', () => ({
-  createServiceRoleClient: vi.fn(() => ({
-    rpc: vi.fn().mockResolvedValue({
-      data: "2026-07-09T01:00:00.000Z",
-      error: null,
-    }),
-  })),
+
   // BUG-077: canonical boundary names mirror the legacy alias.
   getDbClient: vi.fn(() => ({ rpc: vi.fn().mockResolvedValue({ data: "2026-07-09T01:00:00.000Z", error: null, }), })),
   requireDbClient: () => ({ from: vi.fn() }),

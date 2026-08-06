@@ -3,13 +3,10 @@
  *
  * Contract enforced by the boundary module at src/lib/db/access/:
  *
- *  1. getDbClient() and createServiceRoleClient() return the IDENTICAL
- *     singleton instance on every call. The legacy alias is a pure
- *     pass-through; no second client is ever constructed.
+ *  1. getDbClient() returns the module-scope singleton on every call.
+ *     No second client is ever constructed.
  *
- *  2. isDbClientConfigured() and isServiceRoleConfigured() return
- *     the IDENTICAL boolean on every call. Same pass-through
- *     guarantee.
+ *  2. isDbClientConfigured() returns a stable boolean on every call.
  *
  *  3. requireDbClient() returns the same singleton as getDbClient(),
  *     or throws DbClientNotConfiguredError if env is missing. It
@@ -18,10 +15,13 @@
  *  4. Concurrent callers share the singleton (no per-call
  *     construction in race conditions).
  *
- *  5. The boundary module's surface area is exactly what `tests/
- *     architecture/db-access.test.ts` enforces. This unit test
- *     mirrors those invariants so they fail fast in unit-test
- *     loops instead of only at full-sweep CI runs.
+ *  5. The boundary module's surface area is exactly the canonical
+ *     names (getDbClient, requireDbClient, isDbClientConfigured,
+ *     plus the anon-client helpers createClient, isSupabaseConfigured).
+ *     Legacy aliases (createServiceRoleClient, isServiceRoleConfigured)
+ *     were removed in BUG-077 Task 9.
+ *
+ *  6. The boundary module must NOT re-export the legacy names.
  *
  * These tests run with NO env vars set; the singleton must be
  * either built once (if a previous test populated env) or stable
@@ -30,9 +30,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-describe("BUG-077: db/access boundary singleton + alias identity", () => {
+describe("BUG-077: db/access boundary singleton + canonical surface", () => {
   beforeEach(() => {
     // Reset module cache so the singleton is rebuilt from the
     // mocked env per test. Each test sets the env vars it wants;
@@ -42,24 +40,16 @@ describe("BUG-077: db/access boundary singleton + alias identity", () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
   });
 
-  describe("identity — both names resolve to the same client", () => {
-    it("getDbClient() and createServiceRoleClient() return the same reference", async () => {
+  describe("identity — getDbClient returns the same reference on every call", () => {
+    it("two calls to getDbClient() return the same reference", async () => {
       process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
       process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-test-key";
 
       const boundary = await import("@/lib/db/access");
       const a = boundary.getDbClient();
-      const b = boundary.createServiceRoleClient();
+      const b = boundary.getDbClient();
 
-      // Identity contract: legacy alias is a pure re-export.
       expect(a).toBe(b);
-    });
-
-    it("isDbClientConfigured() and isServiceRoleConfigured() return the same boolean", async () => {
-      const boundary = await import("@/lib/db/access");
-      expect(boundary.isDbClientConfigured()).toBe(
-        boundary.isServiceRoleConfigured(),
-      );
     });
 
     it("requireDbClient() returns the same client as getDbClient()", async () => {
@@ -81,7 +71,6 @@ describe("BUG-077: db/access boundary singleton + alias identity", () => {
       const refs = [
         boundary.getDbClient(),
         boundary.getDbClient(),
-        boundary.createServiceRoleClient(),
         boundary.requireDbClient(),
       ];
       const first = refs[0];
@@ -95,11 +84,6 @@ describe("BUG-077: db/access boundary singleton + alias identity", () => {
     it("getDbClient() returns null when env is missing", async () => {
       const boundary = await import("@/lib/db/access");
       expect(boundary.getDbClient()).toBeNull();
-    });
-
-    it("createServiceRoleClient() returns null when env is missing", async () => {
-      const boundary = await import("@/lib/db/access");
-      expect(boundary.createServiceRoleClient()).toBeNull();
     });
 
     it("isDbClientConfigured() returns false when env is missing", async () => {
@@ -136,7 +120,6 @@ describe("BUG-077: db/access boundary singleton + alias identity", () => {
           await Promise.resolve();
           return [
             boundary.getDbClient(),
-            boundary.createServiceRoleClient(),
             boundary.requireDbClient(),
           ];
         }),
@@ -149,20 +132,23 @@ describe("BUG-077: db/access boundary singleton + alias identity", () => {
     });
   });
 
-  describe("alias surface — boundary exports BOTH names during migration", () => {
-    it("boundary module exposes getDbClient, requireDbClient, createServiceRoleClient, isServiceRoleConfigured, isDbClientConfigured, createClient, isSupabaseConfigured", async () => {
+  describe("boundary surface (BUG-077 Task 9: canonical only)", () => {
+    it("boundary module exposes the canonical names + anon helpers", async () => {
       const boundary = await import("@/lib/db/access");
-      // Mid-migration: legacy names MUST be present.
-      // After BUG-077 Task 9 completes, only the canonical names
-      // remain and this test is updated. See plan task 9.
+      // Canonical surface.
       expect(typeof boundary.getDbClient).toBe("function");
       expect(typeof boundary.requireDbClient).toBe("function");
       expect(typeof boundary.isDbClientConfigured).toBe("function");
-      expect(typeof boundary.createServiceRoleClient).toBe("function");
-      expect(typeof boundary.isServiceRoleConfigured).toBe("function");
-      // Anon-client side (not part of BUG-077 but live in the same module)
+      // Anon-client side (not part of BUG-077 but live in the same module).
       expect(typeof boundary.createClient).toBe("function");
       expect(typeof boundary.isSupabaseConfigured).toBe("function");
+    });
+
+    it("boundary module does NOT re-export the legacy aliases", async () => {
+      const boundary = await import("@/lib/db/access");
+      // Task 9: legacy aliases deleted from the boundary.
+      expect(boundary.createServiceRoleClient).toBeUndefined();
+      expect(boundary.isServiceRoleConfigured).toBeUndefined();
     });
   });
 });

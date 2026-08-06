@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
   // rows by auth user, but the endpoint is accessible to anonymous callers.
   let authUserId: string | null = null;
   try {
-    const supabase = await (await import("@/lib/supabase/server")).createClient();
+    const supabase = await (await import("@/lib/db/access")).createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();

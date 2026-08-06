@@ -31,7 +31,6 @@ export type {
   AuthEvent,
   AuthEventListener,
   AuthOrchestratorBootstrapDeps,
-  AuthOrchestratorDeps,
   BootstrapConflictResult,
   BootstrapReadyResult,
   BootstrapRecoveryResult,

@@ -53,20 +53,13 @@ vi.mock("@/lib/db/access", () => {
     then: vi.fn(),
   };
   return {
-    createServiceRoleClient: vi.fn(() => ({
-      from: mockFrom,
-      rpc: mockRpc,
-      auth: {
-        getUser: mockGetUser,
-        admin: { getUserById: mockAdminGetUserById },
-      },
-    })),
+
     // BUG-077: canonical boundary names mirror the legacy alias.
     getDbClient: vi.fn(() => ({ from: mockFrom, rpc: mockRpc, auth: { getUser: mockGetUser, admin: { getUserById: mockAdminGetUserById }, }, })),
     requireDbClient: () => ({ from: vi.fn() }),
     isDbClientConfigured: vi.fn(() => true),
     createClient: vi.fn(async () => null),
-    isServiceRoleConfigured: vi.fn(() => true),
+
     isSupabaseConfigured: vi.fn(() => true),
     chainable,
   };

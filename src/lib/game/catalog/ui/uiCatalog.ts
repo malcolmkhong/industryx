@@ -60,6 +60,6 @@ export {
   type ProductionChainUIMeta,
 } from './market';
 
-export { TIER_INFO } from '../../shared/icons/tiers';
+export { TIER_INFO } from '../../progression/tiers';
 
 export type { BuildingType, ResourceType, TransportType, WeatherType } from '../../shared/types/types';

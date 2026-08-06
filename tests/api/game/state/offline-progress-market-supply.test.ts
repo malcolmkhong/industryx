@@ -75,13 +75,13 @@ vi.mock("@/lib/db/access", () => {
     },
   };
   return {
-    createServiceRoleClient: () => client,
+
     // BUG-077: canonical boundary names mirror the legacy alias.
     getDbClient: () => client,
     requireDbClient: () => ({ from: vi.fn() }),
     isDbClientConfigured: vi.fn(() => true),
     createClient: async () => client,
-    isServiceRoleConfigured: () => true,
+
     isSupabaseConfigured: () => true,
   };
 });

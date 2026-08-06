@@ -237,10 +237,9 @@ export { Session };
 // ─── Deps — NEW minimal interface for the bootstrap flow ────────────────
 
 /**
- * AuthOrchestrator deps for the post-PR4-4A bootstrap flow. This replaces
- * the legacy `AuthOrchestratorDeps` (quickstart/registerDevice/etc.). The
- * legacy interface is no longer exported — PR4-4B will update
- * `AuthProvider.tsx` to wire the new shape.
+ * AuthOrchestrator deps for the post-PR4-4A bootstrap flow. The
+ * legacy `AuthOrchestratorDeps` interface (quickstart/registerDevice/etc.)
+ * was removed; callers must use this canonical name.
  *
  * Each callback is wrapped in try/catch by the orchestrator so a buggy
  * provider cannot prevent subsequent cleanup steps from running.
@@ -275,7 +274,9 @@ export interface AuthOrchestratorBootstrapDeps {
    * MUST return `null` on network/JSON failure so the orchestrator can
    * route to RESPONSE_TEMPORARY.
    */
-  callBootstrap: (body: BootstrapRequestBody) => Promise<BootstrapResponseBody | null>;
+  callBootstrap: (
+    body: BootstrapRequestBody,
+  ) => Promise<BootstrapResponseBody | null>;
 
   /**
    * Apply server-authoritative state. Called EXACTLY ONCE per successful
@@ -356,14 +357,9 @@ export interface BootstrapTelemetryEvent {
   isGuest: boolean | null;
 }
 
-// ─── Legacy re-exports for callers that still import the old names ──────
+// ─── End of types ──────────────────────────────────────────────────────
 //
-// PR4-4B will rewrite AuthProvider.tsx and the test harness. Until then
-// we keep `AuthOrchestratorDeps` as a type alias so existing imports keep
-// compiling. Once AuthProvider is updated this alias goes away.
-
-/**
- * @deprecated Use `AuthOrchestratorBootstrapDeps`. Kept for the existing
- * AuthProvider.tsx and E2E harness; PR4-4B removes it.
- */
-export type AuthOrchestratorDeps = AuthOrchestratorBootstrapDeps;
+// `AuthOrchestratorDeps` was a legacy alias for `AuthOrchestratorBootstrapDeps`
+// kept during the PR4-4A → PR4-4B migration. It has been removed: callers
+// must use `AuthOrchestratorBootstrapDeps` directly. The architecture
+// test (tests/architecture/auth-orchestrator.test.ts) enforces this.

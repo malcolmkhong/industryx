@@ -50,7 +50,7 @@ const liveDescribe = LIVE ? describe : describe.skip;
 // ─── 1. In-process boundary contract (always runs) ──────────────
 
 describe("db/access boundary: in-process contract (BUG-077)", () => {
-  it("boundary module loads and exposes both legacy and canonical names", async () => {
+  it("boundary module loads and exposes only canonical names", async () => {
     // The boundary has a .server.ts suffix which marks it server-only.
     // tsx (the test runner) treats .server.ts as a normal TS module,
     // so we can statically import it.
@@ -61,19 +61,31 @@ describe("db/access boundary: in-process contract (BUG-077)", () => {
     assert.equal(typeof boundary.requireDbClient, "function");
     assert.equal(typeof boundary.isDbClientConfigured, "function");
 
-    // Legacy aliases (present until BUG-077 Task 9 completes)
-    assert.equal(typeof boundary.createServiceRoleClient, "function");
-    assert.equal(typeof boundary.isServiceRoleConfigured, "function");
+    // Legacy aliases (BUG-077 Task 9: deleted)
+    assert.equal(
+      boundary.createServiceRoleClient,
+      undefined,
+      "legacy createServiceRoleClient must be removed",
+    );
+    assert.equal(
+      boundary.isServiceRoleConfigured,
+      undefined,
+      "legacy isServiceRoleConfigured must be removed",
+    );
   });
 
-  it("legacy alias and canonical name return the same client reference at runtime", async () => {
-    // Skip if env is missing — the identity contract requires a client.
+  it("requireDbClient and getDbClient are consistent at the same boundary instance", async () => {
+    // requireDbClient() must return the same client as getDbClient()
+    // when env is configured. When env is missing, requireDbClient
+    // must throw the typed DbClientNotConfiguredError.
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      // The null case: both names must return null.
+      // The null case: getDbClient returns null; requireDbClient
+      // throws a typed error.
       const boundary = await import("../../src/lib/db/access/index.ts");
-      assert.strictEqual(
-        boundary.createServiceRoleClient(),
-        boundary.getDbClient(),
+      assert.strictEqual(boundary.getDbClient(), null);
+      assert.throws(
+        () => boundary.requireDbClient(),
+        /service-role client is not configured/i,
       );
       return;
     }
@@ -94,12 +106,12 @@ describe("db/access boundary: in-process contract (BUG-077)", () => {
       },
     );
 
-    const legacy = mod.createServiceRoleClient();
-    const canonical = mod.getDbClient();
+    const a = mod.requireDbClient();
+    const b = mod.getDbClient();
     assert.strictEqual(
-      legacy,
-      canonical,
-      "legacy and canonical must be the same reference",
+      a,
+      b,
+      "requireDbClient and getDbClient must share singleton",
     );
   });
 });
@@ -176,8 +188,12 @@ invariantDescribe("db/access boundary: filesystem invariant (BUG-077)", () => {
   it("no production code imports createServiceRoleClient from outside the allowed shims", async () => {
     const srcRoot = path.resolve("src");
     const ALLOWED = new Set<string>([
-      path.join(srcRoot, "lib/supabase/server.ts"),
-      path.join(srcRoot, "lib/db/admin/admin.ts"),
+      // The boundary module itself and the getDbClient.server.ts
+      // implementation file (which contains doc-comment references
+      // to the legacy names as historical context). These are the
+      // only places the legacy strings may legitimately appear.
+      path.join(srcRoot, "lib/db/access/getDbClient.server.ts"),
+      path.join(srcRoot, "lib/db/access/index.ts"),
     ]);
 
     const violations: string[] = [];
