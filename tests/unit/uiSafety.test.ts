@@ -300,7 +300,7 @@ describe("UI safety: serverEngine exports all Phase 6 validators", () => {
       "validateAssignWorkerAction",
       "validateCollectPayoutAction",
       "validateClaimQuestAction",
-      "validateClaimDailyRewardAction",
+      "validateClaimDailyReward",
       "validateFulfillContractAction",
       "validateStartDroneMissionAction",
       "validateCollectDroneAction",

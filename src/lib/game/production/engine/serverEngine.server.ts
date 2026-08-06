@@ -52,7 +52,8 @@ export {
   validateCollectPayoutAction,
   validateClaimQuestAction,
 } from "./validators/quests";
-export { validateClaimDailyRewardAction } from "./validators/rewards";
+export { validateClaimDailyReward } from "./validators/rewards";
+export { applyClaimDailyRewardMutation } from "./mutators/rewards";
 export { validateFulfillContractAction } from "./validators/contracts";
 export { validateUpgradeStorageAction } from "./validators/storage";
 export {

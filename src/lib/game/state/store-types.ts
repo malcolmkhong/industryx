@@ -94,9 +94,8 @@ export interface GameActions {
   // Leaderboard
   addLeaderboardEntry: (entry: LeaderboardEntry) => void;
 
-  // Daily Rewards
-  checkDailyLogin: () => void;
-  claimDailyReward: (day: number) => void;
+  // Daily Rewards — server-authoritative; client only triggers claim.
+  claimDailyReward: (day: number) => Promise<void>;
 
   // Quests
   claimQuestReward: (questId: string) => Promise<void>;

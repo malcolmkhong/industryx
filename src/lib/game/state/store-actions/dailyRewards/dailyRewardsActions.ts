@@ -1,72 +1,29 @@
 // ============================================
-// Daily Rewards Actions Factory
+// Daily Rewards Action — client store wrapper.
+//
+// IMPORTANT: this is a thin client wrapper around the
+// `claim_daily_reward` server action. All streak math, time
+// computation, and amount calculation happens server-side. The client
+// does NOT maintain any local streak state — `loginStreak` in the
+// store is set by server responses (bootstrap, claim-daily-reward,
+// live-tick, offline-progress).
 // ============================================
 import type { ServerGameData } from "../../../shared/types/types";
-import { getStreakMultiplier } from "../../../config/configCache";
 import { soundEngine } from "../../../audio/soundEngine";
 import { generateId } from "../../../shared/utils/generateId";
 import type { SetFn, GetFn } from "../_actionTypes";
-import { deriveWeeklyRewards } from "./deriveWeeklyRewards";
 
 export function createDailyRewardActions(set: SetFn, get: GetFn) {
   return {
-    checkDailyLogin: () => {
-      const state = get();
-      const today = new Date().toISOString().split("T")[0];
-      const loginStreak = { ...state.loginStreak };
-
-      if (loginStreak.lastLoginDate === today) return;
-
-      const yesterday = new Date(Date.now() - 86400000)
-        .toISOString()
-        .split("T")[0];
-
-      if (loginStreak.lastLoginDate === yesterday) {
-        loginStreak.currentStreak++;
-      } else if (loginStreak.lastLoginDate === "") {
-        loginStreak.currentStreak = 1;
-      } else {
-        loginStreak.currentStreak = 1;
-      }
-
-      loginStreak.lastLoginDate = today;
-      loginStreak.totalLogins++;
-
-      if (loginStreak.currentStreak > loginStreak.longestStreak) {
-        loginStreak.longestStreak = loginStreak.currentStreak;
-      }
-
-      const dayOfWeek = ((loginStreak.currentStreak - 1) % 7) + 1;
-
-      const needsNewRewards =
-        loginStreak.weeklyRewards.length === 0 ||
-        loginStreak.weeklyRewards.every((r) => r.claimed);
-
-      if (needsNewRewards) {
-        const multiplier = getStreakMultiplier(loginStreak.currentStreak);
-        loginStreak.weeklyRewards = deriveWeeklyRewards(multiplier, dayOfWeek, false);
-      }
-
-      const todayReward = loginStreak.weeklyRewards.find(
-        (r) => r.day === dayOfWeek && !r.claimed,
-      );
-      if (!todayReward) {
-        const multiplier = getStreakMultiplier(loginStreak.currentStreak);
-        loginStreak.weeklyRewards = deriveWeeklyRewards(multiplier, dayOfWeek, true);
-      }
-
-      set({ loginStreak });
-    },
-
     claimDailyReward: async (day: number) => {
-      const state = get();
-      const rewardIndex = state.loginStreak.weeklyRewards.findIndex(
-        (r) => r.day === day && !r.claimed,
-      );
-      if (rewardIndex === -1) return;
-
-      const validation = await import("../../../actions/client/actionValidator").then((m) =>
-        m.validateActionWithServer("claim_daily_reward", { day }, generateId()),
+      const validation = await import(
+        "../../../actions/client/actionValidator"
+      ).then((m) =>
+        m.validateActionWithServer(
+          "claim_daily_reward",
+          { day },
+          generateId(),
+        ),
       );
       if (!validation.approved) {
         soundEngine.play("error", "building");
@@ -87,24 +44,14 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      const updates: Partial<ServerGameData> = {};
-
-      updates.loginStreak = corrected.loginStreak;
-      if (corrected?.money !== undefined) {
-        updates.money = corrected.money;
-      }
-      if (corrected?.totalMoneyEarned !== undefined) {
-        updates.totalMoneyEarned = corrected.totalMoneyEarned;
-      }
-      if (corrected?.researchPoints !== undefined) {
-        updates.researchPoints = corrected.researchPoints;
-      }
-      if (corrected?.resources) {
-        updates.resources = corrected.resources;
-      }
-      if (corrected?.prestigeState) {
-        updates.prestigeState = corrected.prestigeState;
-      }
+      // Server returns the authoritative corrected state — apply only
+      // the fields the server explicitly set.
+      const updates: Partial<ServerGameData> = { loginStreak: corrected.loginStreak };
+      if (corrected.money !== undefined) updates.money = corrected.money;
+      if (corrected.totalMoneyEarned !== undefined) updates.totalMoneyEarned = corrected.totalMoneyEarned;
+      if (corrected.researchPoints !== undefined) updates.researchPoints = corrected.researchPoints;
+      if (corrected.resources) updates.resources = corrected.resources;
+      if (corrected.prestigeState) updates.prestigeState = corrected.prestigeState;
 
       set(updates);
       soundEngine.play("moneyEarned", "building");
