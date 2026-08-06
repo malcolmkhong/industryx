@@ -216,9 +216,20 @@ export async function POST(request: Request) {
   const validation = await validateGameState(gameState, previousState || undefined);
 
   if (validation.riskLevel === 'critical' || validation.riskLevel === 'high') {
-    // Admin bypass: skip cheat flagging and allow save even with violations
-    if (isUserAdmin) {
-      console.warn(`[GameStateAPI] Admin ${auth.userId} bypassing cheat detection: ${validation.violations.join('; ')}`);
+    // Admin bypass (high only): allow saves with HIGH-severity violations
+    // (e.g. minor money delta spikes) so admins can self-test edge cases.
+    // CRITICAL violations are NEVER bypassed — they indicate state-tampering
+    // (tick drift, sign flips, integer overflow, etc.) and persisting them
+    // would silently corrupt the player's authoritative server state.
+    //
+    // Production incident (2026-08-06): the admin auth account was used to
+    // POST a state with gameTick=0 + money=1000 (initial values) while the
+    // server had gameTick=53138 + money=1434. The critical-severity violation
+    // "Game tick went backwards: 0 < 53138 (drift=53138)" was bypassed by
+    // the admin override and the player's full_state was wiped to defaults.
+    // That override no longer exists for critical violations.
+    if (isUserAdmin && validation.riskLevel !== 'critical') {
+      console.warn(`[GameStateAPI] Admin ${auth.userId} bypassing cheat detection (high only): ${validation.violations.join('; ')}`);
       logActionAsync({
         userId: auth.userId,
         actionType: 'save',
