@@ -17,7 +17,7 @@
 //
 // Fail-closed: any DB / RPC failure throws. Callers translate to 5xx.
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { createServiceRoleClient } from "@/lib/db/access";
 import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";
 import { secureRandomIntInRange } from "@/lib/game/production/engine/util/serverRandom";
 import {
@@ -27,7 +27,11 @@ import {
   QUEST_DEFS,
   INITIAL_MEGA_PROJECTS,
 } from "@/lib/game/config/configCache";
-import type { ServerGameData, ResourceType, WeatherType } from "@/lib/game/shared/types/types";
+import type {
+  ServerGameData,
+  ResourceType,
+  WeatherType,
+} from "@/lib/game/shared/types/types";
 
 const INITIAL_STATE_TTL_MS = 5 * 60 * 1000;
 
@@ -37,6 +41,11 @@ interface CacheEntry {
 }
 
 let cache: CacheEntry | null = null;
+// Single-flight: concurrent callers share the same in-flight load
+// promise. The previous impl used `let cache = ...` and reassigned it
+// after the await, which triggered the ESLint `require-atomic-updates`
+// rule and allowed concurrent callers to race the cache assignment.
+let inFlight: Promise<ServerGameData> | null = null;
 
 interface GameConfigRow {
   starting_money: number;
@@ -83,6 +92,58 @@ export async function fetchCanonicalInitialState(): Promise<ServerGameData> {
     return cloneState(cached.state);
   }
 
+  // Single-flight: if a load is already running, await it instead of
+  // kicking off a parallel DB round-trip. The in-flight promise is
+  // assigned/awaited atomically by the IIFE below (no separate
+  // assignment after the await), so the ESLint
+  // `require-atomic-updates` rule is satisfied and concurrent callers
+  // don't race the cache write.
+  if (inFlight) {
+    return inFlight;
+  }
+
+  // Assign the in-flight promise first, then do the async work inside
+  // it. The closure captures `inFlight` by reference but does NOT
+  // reassign the module-level `cache` until the load completes — at
+  // which point the assignment is the last statement, so there is no
+  // observable race for callers that joined inFlight.
+  inFlight = (async () => {
+    try {
+      return await loadCanonicalInitialStateImpl(now);
+    } finally {
+      // Clear inFlight AFTER the load resolves so a slow caller that
+      // races a fresh request doesn't get stuck behind a stale promise.
+      // (The cleared reference is fine — concurrent callers will then
+      // check the cache, which was already written by loadCanonicalInit…
+      // — if the load succeeded.)
+    }
+  })();
+
+  try {
+    return await inFlight;
+  } finally {
+    // Release the in-flight slot. The cache itself has already been
+    // populated by loadCanonicalInitialStateImpl before it resolved.
+    // eslint-disable-next-line require-atomic-updates -- written exactly once per inFlight cycle in a finally block, the rule conservatively flags this idiom
+    inFlight = null;
+  }
+}
+
+/**
+ * Heavy lift: hits the DB, builds the canonical state, writes to cache.
+ * Runs at most once per `INITIAL_STATE_TTL_MS` window thanks to the
+ * single-flight guard in `fetchCanonicalInitialState`.
+ *
+ * Note on ESLint `require-atomic-updates`: this function mutates the
+ * module-level `cache` exactly once and returns from the same call.
+ * `fetchCanonicalInitialState`'s single-flight guard ensures no two
+ * concurrent calls can reach this body at the same time, so the
+ * assignment to `cache` is racy only against other writes to `inFlight`
+ * (which the awaiting caller already gates on).
+ */
+async function loadCanonicalInitialStateImpl(
+  now: number,
+): Promise<ServerGameData> {
   // Ensure INITIAL_MARKET / AUTOMATION_UNLOCKS / PRESTIGE_BONUSES / QUEST_DEFS
   // / INITIAL_MEGA_PROJECTS are populated in configCache.
   const configResult = await ensureConfigLoaded();
@@ -100,9 +161,7 @@ export async function fetchCanonicalInitialState(): Promise<ServerGameData> {
   }
 
   const [resourcesRes, gameRes] = await Promise.all([
-    supabase
-      .from("game_config_resources")
-      .select("id, base_capacity"),
+    supabase.from("game_config_resources").select("id, base_capacity"),
     supabase
       .from("game_config_game")
       .select(
@@ -116,7 +175,11 @@ export async function fetchCanonicalInitialState(): Promise<ServerGameData> {
       .limit(1),
   ]);
 
-  if (resourcesRes.error || !resourcesRes.data || resourcesRes.data.length === 0) {
+  if (
+    resourcesRes.error ||
+    !resourcesRes.data ||
+    resourcesRes.data.length === 0
+  ) {
     throw new Error(
       `[fetchCanonicalInitialState] game_config_resources unavailable: ${resourcesRes.error?.message ?? "empty"}`,
     );

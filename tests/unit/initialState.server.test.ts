@@ -1,4 +1,4 @@
-﻿/**
+/**
  * tests/unit/initialState.server.test.ts â€” Phase 12 + Phase 13 (Option C)
  *
  * Unit tests for the server-authoritative `fetchCanonicalInitialState()`
@@ -92,16 +92,25 @@ function configureMockSupabase(opts: {
       };
     }
     if (table === 'game_config_game') {
+      // BUG-095: the production fetch chain now uses
+      //   .select(...).eq('id', 'global').limit(1)
+      // The mock is chainable across arbitrary filter calls so any
+      // future query tweak won't require rewriting this stub.
+      const gameData = {
+        data: opts.gameError
+          ? null
+          : opts.game === null
+            ? []
+            : [(opts.game ?? fakeGameRow)],
+        error: opts.gameError ? { message: opts.gameError } : null,
+      };
       return {
         select: () => ({
-          limit: () => ({
-            data: opts.gameError
-              ? null
-              : opts.game === null
-                ? []
-                : [(opts.game ?? fakeGameRow)],
-            error: opts.gameError ? { message: opts.gameError } : null,
+          eq: () => ({
+            limit: () => gameData,
+            select: () => ({ eq: () => ({ limit: () => gameData }) }),
           }),
+          limit: () => gameData,
         }),
       };
     }
