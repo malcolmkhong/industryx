@@ -32,8 +32,8 @@
  *   - src/app/api/admin/users/admins/[id]/route.ts  (2 call sites)
  *   - src/app/api/admin/users/admins/[id]/role/route.ts (4 call sites)
  */
- 
-import { createClient } from '@/lib/db/access';;
+
+import { createClient } from "@/lib/db/access";
 import type { Database } from "@/lib/db/types";
 
 // Type aliases from the generated Supabase types.
@@ -59,9 +59,15 @@ export type AdminUserForRoleUpdate = Pick<
 // ─────────────────────────────────────────────────────────────────
 // 60s in-memory cache for admin user IDs (preserved from auth/admin.ts)
 // ─────────────────────────────────────────────────────────────────
+//
+// Single-flight pattern: when the cache is stale, only one refresh is
+// in flight at a time. Concurrent callers wait on the same promise,
+// then receive the result. This eliminates the "reassign based on
+// outdated value" race that the previous design exposed.
 
 let adminCache: Set<string> = new Set();
 let cacheLoadedAt = 0;
+let inflightRefresh: Promise<Set<string>> | null = null;
 const CACHE_TTL_MS = 60_000; // 1 minute
 
 function getAdminUidsFromEnv(): string[] {
@@ -80,6 +86,43 @@ export function isAdminUserIdInEnv(userId: string): boolean {
 }
 
 /**
+ * Refresh the cache once. Returns the resulting Set, or an env-var
+ * fallback Set on query failure. Concurrent callers share the same
+ * in-flight promise.
+ */
+async function refreshAdminCache(): Promise<Set<string>> {
+  if (inflightRefresh) return inflightRefresh;
+  inflightRefresh = (async () => {
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("admin_users")
+        .select("user_id");
+      if (error) {
+        console.warn(
+          "[Auth] admin_users query failed, falling back to ADMIN_UIDS env var:",
+          error.message,
+        );
+        return new Set(getAdminUidsFromEnv());
+      }
+      const fresh = new Set((data ?? []).map((r) => r.user_id));
+      adminCache = fresh;
+      cacheLoadedAt = Date.now();
+      return fresh;
+    } catch (err) {
+      console.warn(
+        "[Auth] admin_users query threw, falling back to ADMIN_UIDS env var:",
+        err,
+      );
+      return new Set(getAdminUidsFromEnv());
+    } finally {
+      inflightRefresh = null;
+    }
+  })();
+  return inflightRefresh;
+}
+
+/**
  * Authoritative async admin check. Caches the admin user IDs from
  * `admin_users` table for 60s. Falls back to ADMIN_UIDS env var on error.
  *
@@ -91,31 +134,8 @@ export async function getAdminUserIdsFromDb(): Promise<Set<string>> {
   if (Date.now() - cacheLoadedAt < CACHE_TTL_MS && adminCache.size > 0) {
     return adminCache;
   }
-
-  // Refresh cache
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("admin_users")
-      .select("user_id");
-    if (error) {
-      console.warn(
-        "[Auth] admin_users query failed, falling back to ADMIN_UIDS env var:",
-        error.message,
-      );
-      return new Set(getAdminUidsFromEnv());
-    }
-    const newCache = new Set((data ?? []).map((r) => r.user_id));
-    adminCache = newCache;
-    cacheLoadedAt = Date.now();
-    return adminCache;
-  } catch (err) {
-    console.warn(
-      "[Auth] admin_users query threw, falling back to ADMIN_UIDS env var:",
-      err,
-    );
-    return new Set(getAdminUidsFromEnv());
-  }
+  // Single-flight refresh
+  return refreshAdminCache();
 }
 
 /**
@@ -138,10 +158,14 @@ export async function isAdminUserIdInDb(userId: string): Promise<boolean> {
 /**
  * Clear the in-memory admin cache. Called by routes that mutate
  * admin_users so subsequent reads see fresh data.
+ *
+ * Also cancels any in-flight refresh so the next read triggers a
+ * fresh query instead of sharing the now-stale promise.
  */
 export function clearAdminCache(): void {
   adminCache = new Set();
   cacheLoadedAt = 0;
+  inflightRefresh = null;
 }
 
 // ─────────────────────────────────────────────────────────────────

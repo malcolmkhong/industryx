@@ -61,14 +61,17 @@ describe("db/access boundary: in-process contract (BUG-077)", () => {
     assert.equal(typeof boundary.requireDbClient, "function");
     assert.equal(typeof boundary.isDbClientConfigured, "function");
 
-    // Legacy aliases (BUG-077 Task 9: deleted)
+    // Legacy aliases (BUG-077 Task 9: deleted). Cast through unknown
+    // so TypeScript doesn't reject the test for accessing properties
+    // the module no longer exports.
+    const anyBoundary = boundary as unknown as Record<string, unknown>;
     assert.equal(
-      boundary.createServiceRoleClient,
+      anyBoundary.createServiceRoleClient,
       undefined,
       "legacy createServiceRoleClient must be removed",
     );
     assert.equal(
-      boundary.isServiceRoleConfigured,
+      anyBoundary.isServiceRoleConfigured,
       undefined,
       "legacy isServiceRoleConfigured must be removed",
     );
