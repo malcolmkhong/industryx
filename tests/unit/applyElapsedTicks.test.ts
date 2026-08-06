@@ -17,6 +17,10 @@ vi.mock('@/lib/db/access', () => ({
       error: null,
     }),
   })),
+  // BUG-077: canonical boundary names mirror the legacy alias.
+  getDbClient: vi.fn(() => ({ rpc: vi.fn().mockResolvedValue({ data: "2026-07-09T01:00:00.000Z", error: null, }), })),
+  requireDbClient: () => ({ from: vi.fn() }),
+  isDbClientConfigured: vi.fn(() => true),
 }));
 
 vi.mock("@/lib/db/config/serverConfigFetcher", () => ({

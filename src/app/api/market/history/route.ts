@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 const DEFAULT_HOURS = 24;
 const MAX_HOURS = 168;
 
 export async function GET(request: NextRequest) {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
   }

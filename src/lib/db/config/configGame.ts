@@ -5,10 +5,10 @@
  * and that the game config row exists.
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 export async function pingGameConfig(): Promise<{ ok: boolean; error?: string }> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return { ok: false, error: 'Supabase service-role client not configured' };
   const { error } = await supabase.from('game_config_game').select('id').limit(1);
   return error ? { ok: false, error: error.message } : { ok: true };

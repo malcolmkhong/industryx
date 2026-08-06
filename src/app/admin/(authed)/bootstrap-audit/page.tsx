@@ -16,7 +16,7 @@
 import { redirect } from "next/navigation";
 
 import { verifyAdmin } from "@/lib/auth/admin";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 import { BootstrapAuditClient } from "./BootstrapAuditClient";
 
@@ -92,7 +92,7 @@ export interface BootstrapAuditData {
 }
 
 async function loadBootstrapAudit(): Promise<BootstrapAuditData> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return {
       summary: {

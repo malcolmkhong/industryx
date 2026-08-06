@@ -14,7 +14,7 @@
 // /api/game/config/definitions, which would add latency + cache-confusion risks.
 // ============================================
 
-import { createServiceRoleClient } from "@/lib/db/access";
+import { getDbClient } from "@/lib/db/access";
 import {
   DEFAULT_BALANCE_SUBSET,
   type SupabaseBuilding,
@@ -80,7 +80,7 @@ function asEffectArray(value: unknown): Array<Record<string, unknown>> {
 }
 
 async function safeFetchTable<T>(
-  supabase: ReturnType<typeof createServiceRoleClient>,
+  supabase: ReturnType<typeof getDbClient>,
   tableName: string,
   pageSize = 2000,
   useSortOrder = true,
@@ -396,7 +396,7 @@ export interface FetchConfigResult {
  * /api/game/config/definitions handler — refactor moves SQL surface area only.
  */
 export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return {
       config: null,

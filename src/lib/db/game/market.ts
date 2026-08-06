@@ -15,7 +15,7 @@
  *   - Caller handles auth + rate limit + response shaping.
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import type { Database } from '@/lib/db/types';
 
 type ServerMarketStateRow = Database['public']['Tables']['server_market_state']['Row'];
@@ -31,7 +31,7 @@ type MarketPlayerPressureRow = Database['public']['Tables']['market_player_press
  * Returns Pick<ServerMarketStateRow, 'tick' | 'prices' | 'news' | 'volatility'>.
  */
 export async function getMarketState(): Promise<Pick<ServerMarketStateRow, 'tick' | 'prices' | 'news' | 'volatility'> | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -49,7 +49,7 @@ export async function getMarketState(): Promise<Pick<ServerMarketStateRow, 'tick
  * Used by /api/market/tick POST.
  */
 export async function getMarketStateFull(): Promise<ServerMarketStateRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -69,7 +69,7 @@ export async function getMarketStateFull(): Promise<ServerMarketStateRow | null>
  * Used by /api/market/tick POST.
  */
 export async function getAllPlayerPressure(): Promise<MarketPlayerPressureRow[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
 
   const { data } = await supabase
@@ -90,7 +90,7 @@ export interface SupplyDemandRow {
 }
 
 export async function getAllSupplyDemand(): Promise<SupplyDemandRow[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
 
   const { data } = await supabase
@@ -109,7 +109,7 @@ export async function getAllSupplyDemand(): Promise<SupplyDemandRow[]> {
  * Used by /api/market/tick POST after AI news is generated.
  */
 export async function updateMarketNews(news: unknown): Promise<boolean> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
 
   const { error } = await supabase
@@ -142,7 +142,7 @@ export interface MarketStateWithConfig {
  * payload. Used by /api/admin/market/overview for resource overview.
  */
 export async function getLatestMarketStateExtended(): Promise<MarketStateWithConfig | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data } = await supabase
     .from('server_market_state')
@@ -157,7 +157,7 @@ export async function getLatestMarketTickAndBreakers(): Promise<{
   tick: number;
   circuit_breakers: Record<string, unknown> | null;
 } | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data } = await supabase
     .from('server_market_state')
@@ -175,7 +175,7 @@ export async function getLatestMarketTickAndBreakers(): Promise<{
 export async function updateMarketCircuitBreakers(
   breakers: Record<string, unknown>,
 ): Promise<boolean> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from('server_market_state')
@@ -198,7 +198,7 @@ export interface LatestMarketTickInfo {
  * Used by /api/admin/system/jobs and /api/admin/system/status.
  */
 export async function getLatestMarketTickInfo(): Promise<LatestMarketTickInfo | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data } = await supabase
     .from('server_market_state')
@@ -228,7 +228,7 @@ export interface LatestMarketNewsRow {
  * Used by /api/admin/system/status for the "AI News Generator" service check.
  */
 export async function getLatestMarketNews(): Promise<LatestMarketNewsRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data } = await supabase
     .from('server_market_state')

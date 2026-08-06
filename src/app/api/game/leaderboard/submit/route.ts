@@ -4,7 +4,7 @@
 // ============================================================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { logActionAsync, validateGameState } from '@/lib/auth/gameStateValidator';
 import { getUserGuestStatus } from '@/lib/auth/guestCheck';
 import { loadServerGameStateForLeaderboard } from '@/lib/db/game/serverGameState';
@@ -29,7 +29,7 @@ interface SubmitPayload {
 
 export async function POST(request: Request) {
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return NextResponse.json(
         { error: 'Database not configured' },

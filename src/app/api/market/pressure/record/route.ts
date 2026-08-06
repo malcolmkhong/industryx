@@ -6,7 +6,7 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 
 export async function POST(request: Request) {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Type must be buy or sell' }, { status: 400 });
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
   }

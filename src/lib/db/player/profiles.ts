@@ -10,7 +10,7 @@
  *   - Throw for unexpected database errors (PostgrestError).
  *   - Caller handles auth + rate limit + response shaping.
  */
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import type { Database } from "@/lib/db/types";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
@@ -35,7 +35,7 @@ export async function updateProfileDisplayName(
   userId: string,
   displayName: string | null,
 ): Promise<PublicProfile | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("profiles")
@@ -58,7 +58,7 @@ export async function updateProfileDisplayName(
 export async function getProfileById(
   userId: string,
 ): Promise<PublicProfile | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("profiles")
@@ -83,7 +83,7 @@ export async function upsertProfile(
     Pick<ProfileRow, "display_name" | "device_fingerprint" | "is_guest">
   >,
 ): Promise<PublicProfile | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("profiles")
@@ -107,7 +107,7 @@ export async function upsertProfile(
  * /api/game/state/sync call will re-derive from profiles.is_anonymous).
  */
 export async function markProfileAsGuest(userId: string): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from("profiles")
@@ -135,7 +135,7 @@ export async function setProfileFingerprint(
   fingerprint: string | null | undefined,
 ): Promise<boolean> {
   if (!fingerprint) return false;
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from("profiles")
@@ -156,7 +156,7 @@ export async function setProfileFingerprint(
 export async function getProfileDisplayAndGuestFlag(
   userId: string,
 ): Promise<{ display_name: string | null; is_guest: boolean } | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("profiles")

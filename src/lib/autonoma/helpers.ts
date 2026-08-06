@@ -5,7 +5,7 @@
  * factory file in this folder so each stays tight and scannable.
  */
 
-import { createServiceRoleClient } from "@/lib/db/access";
+import { getDbClient } from "@/lib/db/access";
 import { shortIdFor, textIdFor, uuidFor } from "./tokenKeys";
 
 export { shortIdFor, textIdFor, uuidFor };
@@ -53,7 +53,7 @@ export function ref<T extends Record<string, unknown>>(record: T): T {
 /** Throws a typed error if the service-role client isn't configured —
  *  the SDK turns this into a 500 with a clear cause. */
 export function requireDb() {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     throw new Error("[autonoma] service-role Supabase client not configured");
   }

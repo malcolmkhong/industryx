@@ -44,6 +44,10 @@ function rpcSet(fnName: string, rows: unknown[] | null) {
 vi.mock("@/lib/db/access", () => {
   return {
     createServiceRoleClient: () => ({
+    // BUG-077: canonical boundary names mirror the legacy alias.
+    getDbClient: () => ({,
+    requireDbClient: () => ({ from: vi.fn() }),
+    isDbClientConfigured: vi.fn(() => true),
       rpc: (fn: string, args?: unknown) => {
         rpcMock.calls.push({ fn, args });
         rpcMock.impl?.(fn, args);

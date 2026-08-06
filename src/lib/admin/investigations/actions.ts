@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { AdminUser } from "@/lib/auth/admin";
 import { logAdminAction } from "@/lib/auth/admin-helpers";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { computeMaxPossibleMoney } from "@/lib/game/server-time/serverTickValidator";
 import type { ServerGameData } from "@/lib/game/shared/types/types";
 import { loadInvestigationFullConfig } from "./configLoader";
@@ -42,7 +42,7 @@ export function handleInvestigationAction(
     );
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Service temporarily unavailable" },
@@ -61,7 +61,7 @@ async function resetMoney(
   admin: AdminUser,
   userId: string,
 ): Promise<NextResponse> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Service temporarily unavailable" },
@@ -196,7 +196,7 @@ async function lockAccount(
     );
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Service temporarily unavailable" },

@@ -27,7 +27,7 @@
  *   - src/app/api/auth/identity/link/route.ts  (2 call sites)
  */
 
-import { createServiceRoleClient } from "@/lib/db/access";
+import { getDbClient } from "@/lib/db/access";
 import type { Database } from "@/lib/db/types";
 import { generateChecksum } from "@/lib/auth/gameStateValidator";
 import { fetchCanonicalInitialState } from "@/lib/db/infra/initialState.server";
@@ -174,7 +174,7 @@ export type ServerGameStateForCron = Pick<
  * want a clean 503 response when Supabase is not configured.
  */
 export function isServerGameStateAvailable(): boolean {
-  return createServiceRoleClient() !== null;
+  return getDbClient() !== null;
 }
 
 /**
@@ -184,7 +184,7 @@ export function isServerGameStateAvailable(): boolean {
 export async function loadServerGameStateLite(
   userId: string,
 ): Promise<ServerGameStateLite | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -382,7 +382,7 @@ export async function buildCompleteFullStateForServerRow(
 export async function loadServerGameStateForTick(
   userId: string,
 ): Promise<ServerGameStateForTick | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -415,7 +415,7 @@ export async function loadServerGameStateForLeaderboard(
   ServerGameStateRow,
   "total_money_earned" | "game_tick" | "is_locked" | "lock_reason" | "money"
 > | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -440,7 +440,7 @@ export async function loadServerGameStateForLeaderboard(
 export async function loadServerGameStateForTrade(
   userId: string,
 ): Promise<ServerGameStateForTrade | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -462,7 +462,7 @@ export async function loadServerGameStateForTrade(
 export async function loadServerGameStateForAction(
   userId: string,
 ): Promise<ServerGameStateForAction | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -493,7 +493,7 @@ export async function loadServerGameStateForAction(
 export async function loadServerGameStateForPreview(
   userId: string,
 ): Promise<ServerGameStateForPreview | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -513,7 +513,7 @@ export async function loadServerGameStateForPreview(
 export async function loadActivePlayersSince(
   cutoffISO: string,
 ): Promise<ServerGameStateForCron[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
 
   const { data, error } = await supabase
@@ -538,7 +538,7 @@ export async function loadActivePlayersSince(
 export async function loadFullStateForUser(
   userId: string,
 ): Promise<{ full_state: unknown; game_tick: number; money: number } | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -573,7 +573,7 @@ export type ServerGameStateForDeltaCheck = Pick<
 export async function loadServerGameStateForDeltaCheck(
   userId: string,
 ): Promise<ServerGameStateForDeltaCheck | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -595,7 +595,7 @@ export async function loadServerGameStateForDeltaCheck(
 export async function upsertServerGameState(
   values: ServerGameStateInsert,
 ): Promise<ServerGameStateRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -631,7 +631,7 @@ export async function upsertServerGameState(
 export async function initializeGuestGameState(
   userId: string,
 ): Promise<ServerGameStateRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   let canonical: ServerGameData;
@@ -686,7 +686,7 @@ export async function initializeGuestGameState(
  * Returns null if the user has no row OR the table is unavailable.
  */
 export async function getGameTick(userId: string): Promise<number | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("server_game_state")
@@ -719,7 +719,7 @@ export async function pageServerGameStateFullState(
   rows: { full_state: unknown; market_supply: unknown }[];
   hasMore: boolean;
 } | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("server_game_state")
@@ -743,7 +743,7 @@ export async function syncPlayerProgressGameState(
   userId: string,
   gameState: unknown,
 ): Promise<void> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return;
 
   await supabase.from("player_progress").upsert(
@@ -766,7 +766,7 @@ export async function syncPlayerProgressGameState(
 export async function loadPlayerProgressGameState(
   userId: string,
 ): Promise<Record<string, unknown> | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -794,7 +794,7 @@ export async function saveServerGameStateOptimistic(
   expectedStateVersion: number,
   patch: ServerGameStateUpdate,
 ): Promise<ServerGameStateRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -852,7 +852,7 @@ export async function listPlayersForAdmin(
     excludeUuid?: string;
   } = {},
 ): Promise<AdminPlayerListResult> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return { players: [], total: 0 };
 
   const from = (page - 1) * limit;
@@ -882,7 +882,7 @@ export async function loadPlayersByIds(
   userIds: string[],
 ): Promise<AdminPlayerRow[]> {
   if (userIds.length === 0) return [];
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
   const { data } = await supabase
     .from("server_game_state")
@@ -898,7 +898,7 @@ export async function sumMoneyAcrossAllPlayers(): Promise<{
   totalEarned: number;
   playerCount: number;
 }> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return { totalMoney: 0, totalEarned: 0, playerCount: 0 };
   const { data } = await supabase
     .from("server_game_state")
@@ -915,7 +915,7 @@ export async function sumMoneyAcrossAllPlayers(): Promise<{
 }
 
 export async function topEarners(limit: number): Promise<AdminPlayerRow[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
   const { data } = await supabase
     .from("server_game_state")
@@ -926,7 +926,7 @@ export async function topEarners(limit: number): Promise<AdminPlayerRow[]> {
 }
 
 export async function countPlayersTotal(): Promise<number> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return 0;
   const { count } = await supabase
     .from("server_game_state")
@@ -935,7 +935,7 @@ export async function countPlayersTotal(): Promise<number> {
 }
 
 export async function countLockedPlayers(): Promise<number> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return 0;
   const { count } = await supabase
     .from("server_game_state")
@@ -947,7 +947,7 @@ export async function countLockedPlayers(): Promise<number> {
 export async function countActivePlayersSince(
   sinceISO: string,
 ): Promise<number> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return 0;
   const { count } = await supabase
     .from("server_game_state")
@@ -965,7 +965,7 @@ export async function setPlayerLockStateBulk(
   lockReason: string | null,
 ): Promise<{ successCount: number; failCount: number }> {
   if (userIds.length === 0) return { successCount: 0, failCount: 0 };
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return { successCount: 0, failCount: userIds.length };
 
   const results = await Promise.all(

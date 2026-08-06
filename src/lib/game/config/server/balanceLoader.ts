@@ -5,7 +5,7 @@
 // getRequiredBalanceKeyCount().
 // ============================================
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import {
   applyBalanceOverrides,
   validateCompleteBalance,
@@ -32,7 +32,7 @@ import { type BalanceLoadResult, type BalanceRow } from "./loaderTypes";
  * partially apply — either the whole balance is valid, or nothing changes.
  */
 export async function loadCompleteBalanceFromSupabase(): Promise<BalanceLoadResult> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return {
       ok: false,

@@ -7,7 +7,7 @@ import {
   countResolvedSince,
   listInvestigations,
 } from "@/lib/db/admin/cheatInvestigations";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 type InvestigationStatus = "open" | "resolved" | "dismissed";
 type InvestigationSeverity = "low" | "medium" | "high" | "critical";
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return NextResponse.json(
         { error: "Service temporarily unavailable - database not configured" },
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function loadUserEmailMap(
-  supabase: ReturnType<typeof createServiceRoleClient>,
+  supabase: ReturnType<typeof getDbClient>,
   userIds: string[],
 ): Promise<Record<string, string>> {
   if (!supabase || userIds.length === 0) return {};
@@ -161,7 +161,7 @@ async function loadUserEmailMap(
 }
 
 async function loadResolvedByEmailMap(
-  supabase: ReturnType<typeof createServiceRoleClient>,
+  supabase: ReturnType<typeof getDbClient>,
   resolvedByIds: string[],
 ): Promise<Record<string, string>> {
   if (!supabase || resolvedByIds.length === 0) return {};

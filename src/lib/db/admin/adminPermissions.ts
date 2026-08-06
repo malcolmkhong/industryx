@@ -4,7 +4,7 @@
 // Used by src/lib/auth/permissions.ts (the policy/auth module).
 // ============================================
 
-import { createServiceRoleClient } from '@/lib/db/admin/admin';
+import { getDbClient } from "@/lib/db/access";
 
 const VALID_PERMISSIONS = [
   'view_players',
@@ -31,7 +31,7 @@ export function getValidPermissions(): readonly string[] {
 export async function listPermissionsForAdmin(
   adminUserId: string,
 ): Promise<DbPermission[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
 
   const { data } = await supabase
@@ -51,7 +51,7 @@ export async function adminHasPermission(
   adminUserId: string,
   permission: DbPermission,
 ): Promise<boolean> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
 
   const { count, error } = await supabase
@@ -72,7 +72,7 @@ export async function grantPermission(
   permission: DbPermission,
   grantedBy: string,
 ): Promise<boolean> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
 
   const { error } = await supabase.from('admin_permissions').upsert({
@@ -92,7 +92,7 @@ export async function revokePermission(
   adminUserId: string,
   permission: DbPermission,
 ): Promise<boolean> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
 
   const { error } = await supabase

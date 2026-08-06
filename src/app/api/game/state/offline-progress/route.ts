@@ -15,7 +15,7 @@
 // ============================================
 
 import { NextResponse } from "next/server";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { logActionAsync } from "@/lib/auth/gameStateValidator";
@@ -120,7 +120,7 @@ async function loadFullConfig(): Promise<GameConfig | null> {
     return cachedConfig;
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     throw new Error("Supabase service role not configured");
   }
@@ -469,7 +469,7 @@ export async function POST(request: Request) {
   const maxOfflineTicks = Number(config.gameConfig.maxOfflineTicks);
   const minOfflineMs = Number(config.gameConfig.minOfflineMs);
 
-  const timeClient = createServiceRoleClient();
+  const timeClient = getDbClient();
   if (!timeClient) {
     return NextResponse.json(
       { error: "Service temporarily unavailable — database not configured" },

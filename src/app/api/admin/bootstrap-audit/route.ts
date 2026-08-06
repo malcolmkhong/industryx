@@ -28,7 +28,7 @@ import { NextResponse } from "next/server";
 
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +83,7 @@ export async function GET() {
   );
   if (rateLimited) return rateLimited;
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return withSecurityHeaders(
       NextResponse.json(

@@ -29,7 +29,7 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { pageServerGameStateFullState } from '@/lib/db/game/serverGameState';
 import type { MarketSupplyProjection } from '@/lib/game/production/snapshot/marketSupplyProjection';
 
@@ -39,7 +39,7 @@ export async function POST() {
   // The RPC client needs service-role to write market_supply_demand; not
   // routed through a helper because it is a one-off SQL function with no
   // other callers.
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
   }

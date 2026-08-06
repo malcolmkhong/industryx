@@ -24,7 +24,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 // ─── Validators ──────────────────────────────────────────────────────────
 
@@ -170,7 +170,7 @@ function normalizeAndValidate(input: unknown): { ok: true; body: NormalizedBody 
  * minute window (API-009). Reads via service-role (RLS bypass).
  */
 async function hasDedupedRow(
-  supabase: NonNullable<ReturnType<typeof createServiceRoleClient>>,
+  supabase: NonNullable<ReturnType<typeof getDbClient>>,
   deviceId: string,
   outcome: TelemetryOutcome,
 ): Promise<boolean> {
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
   );
   if (limited) return limited;
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "service unavailable", code: "TELEMETRY_UNAVAILABLE" },

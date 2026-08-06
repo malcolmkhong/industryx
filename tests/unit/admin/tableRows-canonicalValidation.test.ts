@@ -34,6 +34,10 @@ const { invalidateCanonicalInitialStateCache, createServiceRoleClient } =
 // ── mock the dependencies ──────────────────────────────────────────────
 vi.mock("@/lib/db/access", () => ({
   createServiceRoleClient: createServiceRoleClient,
+  // BUG-077: canonical boundary names mirror the legacy alias.
+  getDbClient: createServiceRoleClient,
+  requireDbClient: () => ({ from: vi.fn() }),
+  isDbClientConfigured: vi.fn(() => true),
   createClient: vi.fn(async () => null),
   isServiceRoleConfigured: vi.fn(() => true),
   isSupabaseConfigured: vi.fn(() => true),

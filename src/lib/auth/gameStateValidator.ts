@@ -6,7 +6,7 @@
 
 import { createHmac } from "crypto";
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import {
   enrichLatestInvestigation,
   incrementCheatFlag,
@@ -545,7 +545,7 @@ export async function fetchPreviousServerState(
   userId: string,
 ): Promise<Record<string, unknown> | null> {
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       throw new Error("Supabase service role not configured");
     }
@@ -598,7 +598,7 @@ export async function isAccountLocked(
   userId: string,
 ): Promise<{ locked: boolean; reason?: string }> {
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
 
     if (!supabase) {
       throw new Error("Supabase service role not configured");
@@ -753,7 +753,7 @@ export function logActionAsync(entry: AuditLogEntry): void {
   // M2 FIX: Use queueMicrotask instead of setImmediate (not available in Edge runtimes)
   queueMicrotask(async () => {
     try {
-      const supabase = createServiceRoleClient();
+      const supabase = getDbClient();
       if (!supabase) {
         throw new Error("Supabase service role not configured");
       }

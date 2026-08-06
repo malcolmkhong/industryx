@@ -44,6 +44,10 @@ describe('GET /api/player/profile', () => {
     vi.resetModules();
     vi.doMock('@/lib/db/access', () => ({
       createServiceRoleClient: () => null,
+      // BUG-077: canonical boundary names mirror the legacy alias.
+      getDbClient: () => null,
+      requireDbClient: () => ({ from: vi.fn() }),
+      isDbClientConfigured: vi.fn(() => true),
       createClient: async () => null,
       isServiceRoleConfigured: () => false,
       isSupabaseConfigured: () => false,

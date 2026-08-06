@@ -1,4 +1,4 @@
-import { createServiceRoleClient } from '@/lib/db/access';
+import { getDbClient } from '@/lib/db/access';
 import type { Database } from '@/lib/db/types';
 
 type LeaderboardRow = Database['public']['Tables']['leaderboard']['Row'];
@@ -8,7 +8,7 @@ type LeaderboardInsert = Database['public']['Tables']['leaderboard']['Insert'];
  * Submit a new score to the leaderboard
  */
 export async function submitScore(entry: LeaderboardInsert): Promise<LeaderboardRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -31,7 +31,7 @@ export async function submitScore(entry: LeaderboardInsert): Promise<Leaderboard
  * Get the global leaderboard with optional limit
  */
 export async function getLeaderboard(limit = 50): Promise<LeaderboardRow[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
 
   const { data, error } = await supabase
@@ -54,7 +54,7 @@ export async function getLeaderboard(limit = 50): Promise<LeaderboardRow[]> {
  * Get a specific user's rank and best score
  */
 export async function getUserRank(userId: string): Promise<{ best_score: number; best_rank: number; total_runs: number } | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   // Using the existing RPC function that's already being called in the route
@@ -85,7 +85,7 @@ export async function getRecentSubmissionsByUser(
   sinceISO: string,
   limit = 1
 ): Promise<Pick<LeaderboardRow, 'id' | 'created_at'>[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
 
   const { data, error } = await supabase

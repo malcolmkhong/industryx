@@ -26,7 +26,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { getServerNowISOOrNull, isExpiredIso } from "@/lib/auth/serverTime";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import {
   logRequestIp,
   extractClientIp,
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     // RPC the tick chain uses, and compare two UTC ISO strings
     // lexicographically (chronologically equivalent at the same
     // precision).
-    const timeClient = createServiceRoleClient();
+    const timeClient = getDbClient();
     const nowIso = timeClient ? await getServerNowISOOrNull(timeClient) : null;
     if (nowIso == null) {
       console.error(

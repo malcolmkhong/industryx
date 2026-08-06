@@ -6,7 +6,7 @@ import {
   isAllowedTable,
   type TableConfig,
 } from "@/lib/config/tables";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { CONFIG_TABLE_COLUMNS, type ConfigTableName } from "@/lib/db/types";
 
 type RowBody = Record<string, unknown>;
@@ -56,7 +56,7 @@ export async function listConfigRows(
   if (!table.ok) return table.response;
 
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return databaseUnavailable();
     }
@@ -162,7 +162,7 @@ export async function createConfigRow(
     const insertData = pickWritableColumns(table.tableConfig, rowBody, {
       includeRequired: true,
     });
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return databaseUnavailable();
     }
@@ -205,7 +205,7 @@ export async function getConfigRow(
   if (!table.ok) return table.response;
 
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return databaseUnavailable();
     }
@@ -281,7 +281,7 @@ export async function updateConfigRow(
       );
     }
 
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return databaseUnavailable();
     }
@@ -329,7 +329,7 @@ export async function deleteConfigRow(
   if (!table.ok) return table.response;
 
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return databaseUnavailable();
     }

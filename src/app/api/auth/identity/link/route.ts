@@ -22,7 +22,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { loadServerGameStateForPreview } from '@/lib/db/game/serverGameState';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { getServerNowISOOrNull, isValidUntilIso } from '@/lib/auth/serverTime';
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { logRequestIp } from '@/app/api/auth/_shared/request-ip-log-helper';
 import { findPrimaryIdentityByDevice } from '@/lib/db/player/guestIdentities';
 import { getProfileDisplayAndGuestFlag } from '@/lib/db/player/profiles';
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     // to `now_iso()` (same source as the tick chain) and compared via
     // pure ISO-string lex order.
     if (existingOp && existingOp.status === 'pending') {
-      const timeClient = createServiceRoleClient();
+      const timeClient = getDbClient();
       const nowIso = timeClient ? await getServerNowISOOrNull(timeClient) : null;
       if (nowIso == null) {
         console.error(

@@ -4,10 +4,10 @@
  * Iteration 8. Read-only counts for admin economy dashboard.
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 export async function countActionsSince(sinceISO: string): Promise<number> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return 0;
   const { count } = await supabase
     .from('player_actions')
@@ -17,7 +17,7 @@ export async function countActionsSince(sinceISO: string): Promise<number> {
 }
 
 export async function countInvalidActionsSince(sinceISO: string): Promise<number> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return 0;
   const { count } = await supabase
     .from('player_actions')
@@ -28,7 +28,7 @@ export async function countInvalidActionsSince(sinceISO: string): Promise<number
 }
 
 export async function countOnlinePlayers(): Promise<number> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return 0;
   const { count } = await supabase
     .from('player_sessions')
@@ -61,7 +61,7 @@ export async function listPlayerActionsWithFilters(
   limit: number,
   filters: ListPlayerActionsFilters,
 ): Promise<ListPlayerActionsResult> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return { actions: [], total: 0 };
 
   const from = (page - 1) * limit;
@@ -95,7 +95,7 @@ export interface ListAdminActionsForExportFilters {
 export async function listAdminActionsForExport(
   filters: ListAdminActionsForExportFilters,
 ): Promise<Record<string, unknown>[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
   let query = supabase
     .from('admin_actions')

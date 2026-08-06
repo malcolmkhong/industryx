@@ -6,7 +6,7 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
 import { getPlayerProgressByUserId } from '@/lib/db/game/playerProgress';
 
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const auth = await verifyAuthAndOwnership(userId);
   if (!auth.success) return auth.response;
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json(
       { error: 'Service temporarily unavailable' },

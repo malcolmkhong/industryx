@@ -6,10 +6,10 @@
  * (initial cloud save after guest-to-OAuth migration).
  *
  * Pattern follows the rest of src/lib/db/*: thin wrappers around
- * `createServiceRoleClient()` that return plain objects (no Supabase types).
+ * `getDbClient()` that return plain objects (no Supabase types).
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 export interface PlayerProgressRow {
   user_id: string;
@@ -21,7 +21,7 @@ export async function searchPlayerProgressByDisplayName(
   displayName: string,
   limit: number,
 ): Promise<string[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
   const { data } = await supabase
     .from('player_progress')
@@ -35,7 +35,7 @@ export async function listPlayerProgressByIds(
   userIds: string[],
 ): Promise<PlayerProgressRow[]> {
   if (userIds.length === 0) return [];
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
   const { data } = await supabase
     .from('player_progress')
@@ -71,7 +71,7 @@ export async function upsertPlayerProgress(
     game_state?: Record<string, unknown> | null;
   },
 ): Promise<boolean> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from('player_progress')

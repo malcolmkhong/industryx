@@ -2,7 +2,7 @@ import { validateClaimDailyReward } from "@/lib/game/production/engine/validator
 import { applyClaimDailyRewardMutation } from "@/lib/game/production/engine/mutators/rewards";
 import type { GameState } from "@/lib/game/shared/types/types";
 import type { ActionResponse } from "../shared/actionTypes";
-import { createServiceRoleClient } from "@/lib/db/access";
+import { getDbClient } from "@/lib/db/access";
 import { getCurrentUtcDateISO } from "@/lib/auth/serverTime";
 import {
   getStreakMultiplier,
@@ -35,7 +35,7 @@ export async function handleClaimDailyRewardAction(
   }
 
   // 1. Authoritative UTC date from Postgres (per BUG-074).
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return {
       valid: false,

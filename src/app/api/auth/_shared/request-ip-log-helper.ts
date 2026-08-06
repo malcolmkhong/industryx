@@ -6,7 +6,7 @@
 // The IP is hashed before storage (SHA-256). The raw IP is never persisted.
 
 import { createHash } from 'crypto';
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 export interface RequestIpLogEntry {
   endpoint: string;
@@ -65,7 +65,7 @@ export async function logRequestIp(
   const ipHash = hashIp(ip);
   const entry: RequestIpLogEntry = { endpoint, ipHash, userId: userId ?? null };
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       // No service role; skip silently
       console.warn('[RequestIpLog] No service role client; skipping log for', endpoint);

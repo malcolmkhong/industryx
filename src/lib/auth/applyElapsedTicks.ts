@@ -20,7 +20,7 @@
 // See docs/REFACTOR_SERVER_AUTHORITATIVE_ACTIONS.md Phase 7 for the design.
 // ============================================
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { fetchGameConfigFromSupabase } from "@/lib/db/config/serverConfigFetcher";
 import { runServerTicks } from "@/lib/game/production/engine/serverEngine.server";
 import { getGameLimits } from "@/lib/game/config/balance/balanceConfig";
@@ -94,7 +94,7 @@ export async function applyElapsedTicks(
   }
   const config = configResult.config;
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     throw new Error("[applyElapsedTicks] Supabase service role not configured");
   }

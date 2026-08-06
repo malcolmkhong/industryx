@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -22,7 +22,7 @@ export async function GET(
   const { id: playerId } = await context.params;
 
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return NextResponse.json(
         { error: 'Service temporarily unavailable — database not configured' },

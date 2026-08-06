@@ -7,7 +7,7 @@ import {
   updateMarketConfigWithError,
   type ValidSector,
 } from "@/lib/db/config/configMarket";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 const VALID_SECTORS = [
   "raw_minerals",
@@ -130,7 +130,7 @@ export async function handleDeleteMarketResource(
     );
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Service temporarily unavailable" },

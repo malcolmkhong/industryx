@@ -6,7 +6,7 @@ import {
   getInvestigation,
   resolveInvestigation,
 } from "@/lib/db/admin/cheatInvestigations";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 interface ResolutionBody {
   action?: unknown;
@@ -17,7 +17,7 @@ export async function getInvestigationDetail(
   investigationId: string,
 ): Promise<NextResponse> {
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return NextResponse.json(
         { error: "Service temporarily unavailable - database not configured" },
@@ -68,7 +68,7 @@ export async function resolveOrDismissInvestigation(
   if (!parsed.ok) return parsed.response;
 
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return NextResponse.json(
         { error: "Service temporarily unavailable - database not configured" },
@@ -149,7 +149,7 @@ export async function resolveOrDismissInvestigation(
 }
 
 async function loadInvestigationUserEmail(
-  supabase: NonNullable<ReturnType<typeof createServiceRoleClient>>,
+  supabase: NonNullable<ReturnType<typeof getDbClient>>,
   userId: string,
 ): Promise<string | null> {
   try {
@@ -161,7 +161,7 @@ async function loadInvestigationUserEmail(
 }
 
 async function loadResolvedByEmail(
-  supabase: NonNullable<ReturnType<typeof createServiceRoleClient>>,
+  supabase: NonNullable<ReturnType<typeof getDbClient>>,
   resolvedBy: string,
 ): Promise<string | null> {
   try {

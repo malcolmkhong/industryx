@@ -1,4 +1,4 @@
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import {
   DEFAULT_BALANCE_SUBSET,
   type GameConfig,
@@ -58,7 +58,7 @@ export async function loadInvestigationFullConfig(): Promise<GameConfig | null> 
     return cachedConfig;
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     throw new Error("Supabase service role not configured");
   }

@@ -14,7 +14,7 @@
 // ============================================
 
 import { NextResponse } from "next/server";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
   const now = new Date().toISOString();
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Service temporarily unavailable — database not configured" },
@@ -98,7 +98,7 @@ export async function DELETE(_request: Request) {
   const auth = await verifyAuth();
   if (!auth.success) return auth.response;
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Service temporarily unavailable — database not configured" },

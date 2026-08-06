@@ -6,7 +6,7 @@
 // gameStateValidator.ts.
 // ============================================================================
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import type { Database } from '@/lib/db/types';
 
 type CheatInvestigationRow = Database['public']['Tables']['cheat_investigations']['Row'];
@@ -44,7 +44,7 @@ export interface ListInvestigationsResult {
 export async function listInvestigations(
   filters: InvestigationFilters = {}
 ): Promise<ListInvestigationsResult> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return { data: [], total: 0 };
 
   let query = supabase
@@ -89,7 +89,7 @@ export async function countResolvedSince(
   sinceISO: string,
   statuses: InvestigationStatus[] = ['resolved', 'dismissed']
 ): Promise<number> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return 0;
 
   const { count, error } = await supabase
@@ -110,7 +110,7 @@ export async function countResolvedSince(
  * Returns null if not found.
  */
 export async function getInvestigation(id: string): Promise<CheatInvestigationRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -137,7 +137,7 @@ export async function getInvestigation(id: string): Promise<CheatInvestigationRo
 export async function flagCheat(
   values: CheatInvestigationInsert
 ): Promise<CheatInvestigationRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -162,7 +162,7 @@ export async function updateInvestigation(
   id: string,
   patch: CheatInvestigationUpdate
 ): Promise<CheatInvestigationRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -222,7 +222,7 @@ export async function enrichLatestInvestigation(
   deviceId?: string | null
 ): Promise<number> {
   if (!fingerprintHash && !deviceId) return 0;
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return 0;
 
   const updatePayload: Record<string, string> = {};
@@ -257,7 +257,7 @@ export interface LatestCheatInvestigationRow {
  * Used by /api/admin/system/jobs for the "Validate Ticks" cron row.
  */
 export async function getLatestCheatInvestigation(): Promise<LatestCheatInvestigationRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data } = await supabase
     .from('cheat_investigations')
@@ -269,7 +269,7 @@ export async function getLatestCheatInvestigation(): Promise<LatestCheatInvestig
 }
 
 export async function countOpenCheatInvestigations(): Promise<number> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return 0;
   const { count } = await supabase
     .from('cheat_investigations')
@@ -279,7 +279,7 @@ export async function countOpenCheatInvestigations(): Promise<number> {
 }
 
 export async function countRecentCheatFlagsSince(sinceISO: string): Promise<number> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return 0;
   const { count } = await supabase
     .from('cheat_investigations')
@@ -309,7 +309,7 @@ export async function incrementCheatFlag(params: {
   description: string;
   severity: InvestigationSeverity;
 }): Promise<boolean> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
 
   const { error } = await supabase.rpc('increment_cheat_flag', {

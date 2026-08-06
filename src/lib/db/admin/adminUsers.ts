@@ -27,7 +27,7 @@
  *   }
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 /**
  * Provider-agnostic auth identity shape.
@@ -121,7 +121,7 @@ function mapAuthUser(u: RawUser): AuthUser {
  * `filterAuthUsersByIds(ids)` or `getAuthUserById(id)`.
  */
 export async function listAllAuthUsers(): Promise<AuthUser[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
   try {
     const { data, error } = await supabase.auth.admin.listUsers();
@@ -171,7 +171,7 @@ export async function filterAuthUsersEnrichedByIds(
  * Avoids the cost of fetching the whole auth roster.
  */
 export async function getAuthUserById(userId: string): Promise<AuthUser | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   try {
     const { data, error } = await supabase.auth.admin.getUserById(userId);

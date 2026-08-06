@@ -11,7 +11,7 @@
 // ============================================================================
 
 import { NextResponse } from "next/server";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { computeMaxPossibleMoney } from "@/lib/game/server-time/serverTickValidator";
 import { DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config/config";
 import type { ServerGameData } from "@/lib/game/shared/types/types";
@@ -261,7 +261,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   // ── 3. Database client ─────────────────────────────────────────────
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Database not configured" },
@@ -393,7 +393,7 @@ export function GET(): NextResponse {
 // via the atomic increment_cheat_flag RPC.
 // ============================================
 async function flagSuspicious(
-  supabase: ReturnType<typeof createServiceRoleClient>,
+  supabase: ReturnType<typeof getDbClient>,
   userId: string,
   money: number,
   gameTick: number,

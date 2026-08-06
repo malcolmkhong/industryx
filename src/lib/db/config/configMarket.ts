@@ -6,7 +6,7 @@
  * 60s cycle, so resources added here become tradable automatically.
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 export type ValidSector =
   | 'raw_minerals'
@@ -27,7 +27,7 @@ export interface MarketConfigRow {
 }
 
 export async function listAllMarketConfig(): Promise<MarketConfigRow[]> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return [];
   const { data } = await supabase
     .from('game_config_market')
@@ -38,7 +38,7 @@ export async function listAllMarketConfig(): Promise<MarketConfigRow[]> {
 export async function getMarketConfigById(
   resourceId: string,
 ): Promise<MarketConfigRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data } = await supabase
     .from('game_config_market')
@@ -59,7 +59,7 @@ export interface NewMarketConfig {
 export async function createMarketConfig(
   values: NewMarketConfig,
 ): Promise<MarketConfigRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('game_config_market')
@@ -80,7 +80,7 @@ export async function updateMarketConfig(
   resourceId: string,
   patch: Omit<NewMarketConfig, 'resource_id'>,
 ): Promise<MarketConfigRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('game_config_market')
@@ -100,7 +100,7 @@ export async function updateMarketConfig(
 export async function deleteMarketConfig(
   resourceId: string,
 ): Promise<boolean> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from('game_config_market')
@@ -126,7 +126,7 @@ export async function updateMarketConfigWithError(
   resourceId: string,
   patch: Omit<NewMarketConfig, 'resource_id'>,
 ): Promise<UpdateMarketConfigResult> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return { data: null, errorCode: null, errorMessage: 'Database not configured' };
   const { data, error } = await supabase
     .from('game_config_market')
@@ -161,7 +161,7 @@ export interface CreateMarketConfigResult {
 export async function createMarketConfigWithError(
   values: NewMarketConfig,
 ): Promise<CreateMarketConfigResult> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return { data: null, errorCode: null, errorMessage: 'Database not configured' };
   const { data, error } = await supabase
     .from('game_config_market')

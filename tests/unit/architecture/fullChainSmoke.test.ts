@@ -25,6 +25,10 @@ const rpcScript = vi.hoisted(() => ({
 
 vi.mock("@/lib/db/access", () => ({
   createServiceRoleClient: () => ({
+  // BUG-077: canonical boundary names mirror the legacy alias.
+  getDbClient: () => ({,
+  requireDbClient: () => ({ from: vi.fn() }),
+  isDbClientConfigured: vi.fn(() => true),
     rpc: vi.fn(async (fn: string) => {
       if (fn === "now_iso") return { data: new Date().toISOString(), error: null };
       if (fn === "bootstrap_guest") {

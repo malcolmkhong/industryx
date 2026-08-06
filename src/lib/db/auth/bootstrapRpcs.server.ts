@@ -19,7 +19,7 @@
  * code; the .server.ts suffix enforces that via Next.js convention.
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 // ─── Error codes (plan §15) ─────────────────────────────────────────────
 
@@ -138,7 +138,7 @@ async function callRpc<T>(
   fnName: string,
   args: Record<string, unknown>,
 ): Promise<RpcOutcome<T>> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return {
       ok: false,

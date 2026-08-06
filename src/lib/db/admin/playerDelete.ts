@@ -8,7 +8,7 @@
  *
  * Why a dedicated module:
  *   - Centralizes error handling for the RPC JSONB response.
- *   - Decouples the route from `createServiceRoleClient()` plumbing.
+ *   - Decouples the route from `getDbClient()` plumbing.
  *   - Enforces fail-closed semantics: returns a discriminated result,
  *     never throws on RPC outcomes (caller decides what to surface).
  *
@@ -17,7 +17,7 @@
  *   - Caller handles auth, rate limit, response shaping, and audit log.
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';
+import { getDbClient } from '@/lib/db/access';
 
 /**
  * Result of a single delete attempt.
@@ -71,7 +71,7 @@ export interface BulkDeleteResult {
 export async function deletePlayerCascade(
   userId: string,
 ): Promise<DeletePlayerResult> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return {
       ok: false,

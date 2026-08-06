@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { requireAdminWrite } from "@/lib/auth/admin-route-guards";
 import { logAdminAction } from "@/lib/auth/admin-helpers";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (!supabase) {
       return NextResponse.json({ error: "Database not configured" }, { status: 503 });
     }

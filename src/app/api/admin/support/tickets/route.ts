@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 export async function GET() {
   const authResult = await verifyAdmin();
   if ("error" in authResult) return authResult.error;
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }

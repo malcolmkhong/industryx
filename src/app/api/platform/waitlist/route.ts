@@ -3,7 +3,7 @@
 // (reuses existing support system — admin sees it in /admin/support).
 
 import { NextResponse, type NextRequest } from "next/server";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 export async function POST(request: NextRequest) {
   let body: { email?: string; name?: string; source?: string };
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 });
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
   }

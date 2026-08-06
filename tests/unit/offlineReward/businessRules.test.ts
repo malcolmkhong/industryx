@@ -160,6 +160,10 @@ let startingMoney = 2000;
 
 vi.mock("@/lib/db/access", () => ({
   createServiceRoleClient: () => ({
+  // BUG-077: canonical boundary names mirror the legacy alias.
+  getDbClient: () => ({,
+  requireDbClient: () => ({ from: vi.fn() }),
+  isDbClientConfigured: vi.fn(() => true),
     rpc: vi.fn(async (fn: string, args?: Record<string, unknown>) => {
       if (fn === "now_iso") {
         return { data: new Date(serverNowMs).toISOString(), error: null };

@@ -39,6 +39,10 @@ describe('GET /api/auth/session/me', () => {
       };
       return {
         createServiceRoleClient: () => errClient,
+        // BUG-077: canonical boundary names mirror the legacy alias.
+        getDbClient: () => errClient,
+        requireDbClient: () => ({ from: vi.fn() }),
+        isDbClientConfigured: vi.fn(() => true),
         createClient: async () => errClient,
         isServiceRoleConfigured: () => true,
         isSupabaseConfigured: () => true,

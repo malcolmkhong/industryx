@@ -17,7 +17,7 @@
 //
 // Fail-closed: any DB / RPC failure throws. Callers translate to 5xx.
 
-import { createServiceRoleClient } from "@/lib/db/access";
+import { getDbClient } from "@/lib/db/access";
 import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";
 import { secureRandomIntInRange } from "@/lib/game/production/engine/util/serverRandom";
 import {
@@ -153,7 +153,7 @@ async function loadCanonicalInitialStateImpl(
     );
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     throw new Error(
       "[fetchCanonicalInitialState] Supabase service role client not configured",

@@ -25,7 +25,7 @@
 
 import type { AuthContext, AuthResult } from "@autonoma-ai/sdk";
 
-import { createServiceRoleClient } from "@/lib/db/access";
+import { getDbClient } from "@/lib/db/access";
 
 interface ProfileRef {
   id: string;
@@ -65,7 +65,7 @@ export async function buildAuthPayload(
   // Mint a session via GoTrue's password-grant endpoint. The service-role
   // key bypasses the normal email-confirmation flow so the call is
   // guaranteed to succeed for any seeded email/password pair.
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return { credentials: { email, password } };
   }

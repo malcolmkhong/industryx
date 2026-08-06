@@ -21,7 +21,7 @@
  *   - Throw for unexpected database errors (PostgrestError).
  *   - Caller handles auth + rate limit + response shaping.
  */
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import type { Database } from "@/lib/db/types";
 
 type GuestIdentityRow = Database["public"]["Tables"]["guest_identities"]["Row"];
@@ -66,7 +66,7 @@ export type GuestIdentityInsert = Pick<
 export async function findIdentityByFingerprint(
   fingerprint: string,
 ): Promise<GuestIdentity | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("guest_identities")
@@ -115,7 +115,7 @@ export async function findUserByDeviceId(
 export async function findPrimaryIdentityByDevice(
   deviceId: string,
 ): Promise<GuestIdentity | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("guest_identities")
@@ -142,7 +142,7 @@ export async function findPrimaryIdentityByDevice(
 export async function findIdentitiesByUserId(
   userId: string,
 ): Promise<GuestIdentity[]> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("guest_identities")
@@ -176,7 +176,7 @@ export async function findIdentitiesByUserId(
 export async function insertGuestIdentity(
   values: GuestIdentityInsert,
 ): Promise<GuestIdentity | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("guest_identities")
@@ -203,7 +203,7 @@ export async function markIdentitySuperseded(
   identityId: string,
   supersededByUserId: string,
 ): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from("guest_identities")
@@ -231,7 +231,7 @@ export async function touchIdentityLastUsed(
   userId: string,
   deviceId: string,
 ): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from("guest_identities")
@@ -257,7 +257,7 @@ export async function setIdentityFingerprintIfMissing(
   deviceId: string,
   fingerprintHash: string,
 ): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return false;
   // No .is() filter on Postgres (no null check) — Supabase will not match
   // null with =, so we issue an UPDATE with the is-still-null guard via
@@ -287,7 +287,7 @@ export async function hasIdentityForUserAndDevice(
   userId: string,
   deviceId: string,
 ): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return false;
   const { data, error } = await supabase
     .from("guest_identities")
@@ -311,7 +311,7 @@ export async function hasIdentityForUserAndDevice(
  * user already has an identity from another device.
  */
 export async function hasAnyIdentityForUser(userId: string): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return false;
   const { data, error } = await supabase
     .from("guest_identities")
@@ -334,7 +334,7 @@ export async function hasAnyIdentityForUser(userId: string): Promise<boolean> {
 export async function deleteIdentitiesByUserId(
   userId: string,
 ): Promise<number> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) return 0;
   const { data, error } = await supabase
     .from("guest_identities")
@@ -384,7 +384,7 @@ export async function reassignUserData(
   oldUserId: string,
   newUserId: string,
 ): Promise<ReassignResult[]> {
-  const supabase = await createServiceRoleClient();
+  const supabase = await getDbClient();
   if (!supabase) {
     return REASSIGNABLE_TABLES.map((table) => ({
       table,

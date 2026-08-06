@@ -12,7 +12,7 @@ import type {
   ResourceAmount,
   ResourceType,
 } from "@/lib/game/shared/types/types";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import {
   getCachedConfig,
   isConfigCacheFresh,
@@ -31,7 +31,7 @@ export async function loadConfig(): Promise<GameConfig | null> {
     return getCachedConfig();
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     throw new Error("Supabase service role not configured");
   }

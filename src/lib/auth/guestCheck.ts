@@ -15,7 +15,7 @@
 //   2. user binds OAuth (confirm-link)     → profile.is_guest = false  (unlocked)
 //   3. archiveGuestProfile runs on GUEST   → GUEST profile.is_guest=false (audit shell)
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 
 export interface GuestCheckResult {
   isGuest: boolean;
@@ -25,7 +25,7 @@ export interface GuestCheckResult {
 export async function getUserGuestStatus(
   userId: string,
 ): Promise<GuestCheckResult> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return { isGuest: false, isLocked: false };
   }

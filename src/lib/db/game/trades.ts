@@ -12,7 +12,7 @@
  *     (errors surfaced via try/catch at the route level).
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import type { Database } from '@/lib/db/types';
 
 type TradeHistoryRow = Database['public']['Tables']['trade_history']['Row'];
@@ -67,7 +67,7 @@ export interface TradeHistoryResult {
  * Fire-and-forget at caller level; caller handles any error response.
  */
 export async function recordTrade(params: RecordTradeParams): Promise<void> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return;
 
   const insert: TradeHistoryInsert = {
@@ -106,7 +106,7 @@ export async function getTradeHistory(
   limit: number,
   offset: number,
 ): Promise<TradeHistoryResult | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error, count } = await supabase

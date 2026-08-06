@@ -9,7 +9,7 @@
  * after a successful state mutation.
  */
 
-import { createServiceRoleClient } from "@/lib/db/access";
+import { getDbClient } from "@/lib/db/access";
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
@@ -53,7 +53,7 @@ export async function recordDailyRewardClaim(args: {
   streakMultiplier: number;
   totalStreak: number;
 }): Promise<DailyRewardRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -92,7 +92,7 @@ export async function upsertUserStreakFromClaim(args: {
   totalLogins: number;
   lastClaimDate: string;
 }): Promise<UserStreakRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase

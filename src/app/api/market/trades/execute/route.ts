@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { isAccountLocked, logActionAsync } from '@/lib/auth/gameStateValidator';
@@ -37,7 +37,7 @@ async function getTradableSet(): Promise<Set<string>> {
     return cachedTradableSet;
   }
   try {
-    const supabase = createServiceRoleClient();
+    const supabase = getDbClient();
     if (supabase) {
       const { data } = await supabase
         .from('game_config_market')
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'One or more resources are not tradable' }, { status: 400 });
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return NextResponse.json(
       { error: 'Service temporarily unavailable — database not configured' },

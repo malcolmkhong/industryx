@@ -6,7 +6,7 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { getServerNowISOOrNull } from '@/lib/auth/serverTime';
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
   // that into a 503 instead of letting the route silently complete with
   // a Node-clock timestamp. The save is rejected — the client can retry
   // once the DB is reachable.
-  const supabaseForTime = createServiceRoleClient();
+  const supabaseForTime = getDbClient();
   const serverTimestamp = supabaseForTime
     ? await getServerNowISOOrNull(supabaseForTime)
     : null;

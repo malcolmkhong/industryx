@@ -37,7 +37,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from '@/lib/db/access';
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 
 export const dynamic = "force-dynamic";
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) {
     return jsonError("service-role client not configured");
   }

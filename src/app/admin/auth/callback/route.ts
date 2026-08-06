@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient, createServiceRoleClient } from '@/lib/db/access';
+import { createClient, getDbClient } from '@/lib/db/access';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
         // Direct table query (not is_game_admin RPC) because auth.uid() returns NULL for
         // service role clients, which would make the RPC always return false.
         // Service role bypasses RLS, so this read is safe.
-        const serviceRoleClient = createServiceRoleClient();
+        const serviceRoleClient = getDbClient();
         if (serviceRoleClient) {
           const { data: adminRecord, error: adminError } = await serviceRoleClient
             .from("admin_users")
