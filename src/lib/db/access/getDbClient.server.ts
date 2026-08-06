@@ -17,11 +17,14 @@
  * bundler; importing this module from a client component is a build error.
  */
 
-import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import {
+  createClient as createSupabaseClient,
+  type SupabaseClient,
+} from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-import { DbClientNotConfiguredError } from './errors';
+import { DbClientNotConfiguredError } from "./errors";
 
 /**
  * Module-scope singleton cache. `undefined` = not yet built; otherwise the
@@ -84,12 +87,23 @@ export function isDbClientConfigured(): boolean {
 // surface used by 66 source files and the test mock factory; deprecate
 // after the migration completes (tracked in BUG-077).
 //
+// BUG-077 Task 1: legacy alias asserts reference identity with the
+// canonical singleton so any future drift that introduces per-call
+// client construction becomes a hard error instead of a silent
+// GoTrueClient "multiple instances" regression.
+//
 // @deprecated Import from "@/lib/db/access" instead.
 /**
  * @deprecated Use `getDbClient()` from `@/lib/db/access`.
  */
 export function createServiceRoleClient(): SupabaseClient | null {
-  return getDbClient();
+  const client = getDbClient();
+  if (client !== _cached) {
+    throw new Error(
+      "[BUG-077] createServiceRoleClient drifted from getDbClient singleton",
+    );
+  }
+  return client;
 }
 
 /**
@@ -116,7 +130,7 @@ export async function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase server client is not configured');
+    throw new Error("Supabase server client is not configured");
   }
 
   const cookieStore = await cookies();
