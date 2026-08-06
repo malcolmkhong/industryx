@@ -1,13 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { AlertTriangle, Building2, Lock, Clock } from "lucide-react";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
-  const [loadingProvider, setLoadingProvider] = useState<'google' | 'github' | null>(null);
+  const [loadingProvider, setLoadingProvider] = useState<
+    "google" | "github" | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "unauthorized") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError(
+        "Your account is not authorized to access the IndustriaX Backend. Contact the system administrator.",
+      );
+    }
+  }, []);
 
   if (!isSupabaseConfigured()) {
     return (
@@ -16,8 +29,13 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-2xl bg-danger/10">
             <AlertTriangle className="w-8 h-8 text-danger" />
           </div>
-          <h2 className="text-xl font-semibold text-white mb-2">Service Unavailable</h2>
-          <p className="text-muted-label text-sm">Authentication service is not configured. Please contact your system administrator.</p>
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Service Unavailable
+          </h2>
+          <p className="text-muted-label text-sm">
+            Authentication service is not configured. Please contact your system
+            administrator.
+          </p>
         </div>
       </div>
     );
@@ -25,21 +43,11 @@ export default function LoginPage() {
 
   const supabase = createClient();
 
-  // Check for error param
-  if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("error") === "unauthorized" && !error) {
-      setError(
-        "Your account is not authorized to access the IndustriaX Backend. Contact the system administrator."
-      );
-    }
-  }
-
   /**
    * Provider-agnostic admin login.
    * Admin login only — admin email allowlist is enforced in /admin/auth/callback.
    */
-  const handleOAuthLogin = async (provider: 'google' | 'github') => {
+  const handleOAuthLogin = async (provider: "google" | "github") => {
     setLoading(true);
     setLoadingProvider(provider);
     setError(null);
@@ -58,8 +66,8 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = () => handleOAuthLogin('google');
-  const handleGithubLogin = () => handleOAuthLogin('github');
+  const handleGoogleLogin = () => handleOAuthLogin("google");
+  const handleGithubLogin = () => handleOAuthLogin("github");
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
@@ -137,7 +145,7 @@ export default function LoginPage() {
               </svg>
             )}
             <span>
-              {loading && loadingProvider === 'google'
+              {loading && loadingProvider === "google"
                 ? "Connecting..."
                 : "Sign in with Google"}
             </span>
@@ -149,7 +157,7 @@ export default function LoginPage() {
             disabled={loading}
             className="mt-3 w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-[#24292e] hover:bg-[#1b1f23] disabled:bg-[#1b1f23]/80 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.98]"
           >
-            {loading && loadingProvider === 'github' ? (
+            {loading && loadingProvider === "github" ? (
               <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
             ) : (
               <svg
@@ -167,7 +175,7 @@ export default function LoginPage() {
               </svg>
             )}
             <span>
-              {loading && loadingProvider === 'github'
+              {loading && loadingProvider === "github"
                 ? "Connecting..."
                 : "Sign in with GitHub"}
             </span>
