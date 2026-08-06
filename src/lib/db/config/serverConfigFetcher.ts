@@ -632,7 +632,12 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
       bonus: m.bonus,
       unlockRequirement: m.unlock_requirement,
     })),
-    gameConfig: (gameRes.data?.[0] as Record<string, unknown>) ?? {},
+    // BUG-095: filter to the canonical 'global' id instead of `data[0]`.
+    // autonoma tests insert per-run rows at gg-global-<random> with default
+    // starting_money=1000; those rows are interleaved in the unordered
+    // PostgREST response and would silently override the production config.
+    // The live row is the one with id='global'.
+    gameConfig: gameRes.data?.find((row) => (row as { id?: string }).id === "global") ?? {},
     balance: transformClientBalance(balanceRes.data),
     balancingRules: (rulesRes.data ?? []).map((r) => ({
       id: r.id,

@@ -743,17 +743,31 @@ export const gameConfigMegaProjectsFactory = defineFactory({
 });
 
 // ─── game_config_game — per-run id ────────────────────────────────────
+//
+// BUG-095: previously used key="global" → id="gg-global-<random>" → the
+// per-run row fought with the production row in fetches that did
+// `.select().limit(1)` or `data[0]`, so Postgres returned test rows first.
+// Tests now use a non-"global" key by default to avoid colliding with
+// production data, and explicitly override `key` when the test genuinely
+// needs to seed the global config.
 
 export const gameConfigGameFactory = defineFactory({
   inputSchema: z.object({
     _alias: z.string().optional(),
-    key: z.string().default("global"),
+    key: z.string().default("test"),
     startingMoney: z.number().default(1000),
   }),
   refSchema: z.object({ id: z.string() }),
   create: async (data, ctx) => {
     const supabase = requireDb();
     const id = rid(ctx, `gg-${data.key}`);
+    if (data.key === "global") {
+      throw new Error(
+        "[autonoma] gameConfigGameFactory key='global' is reserved for production. " +
+          "Use a per-run key (e.g. 'test') to avoid colliding with the " +
+          "production game_config_game row.",
+      );
+    }
     const { data: row, error } = await supabase
       .from("game_config_game")
       .upsert({ id, starting_money: data.startingMoney }, { onConflict: "id" })

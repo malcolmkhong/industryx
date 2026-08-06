@@ -108,6 +108,11 @@ export async function fetchCanonicalInitialState(): Promise<ServerGameData> {
       .select(
         "starting_money, base_payout_interval, weather_change_min_ticks, weather_change_max_ticks, initial_drone_speed_level, initial_drone_capacity_level, initial_drone_fuel_efficiency_level",
       )
+      // BUG-095: filter to the canonical 'global' id. autonoma test rows
+      // at id='gg-global-<random>' carry a default starting_money=1000
+      // that would silently override the production config if returned
+      // first by the (unordered) PostgREST RPC.
+      .eq("id", "global")
       .limit(1),
   ]);
 
