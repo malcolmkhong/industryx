@@ -17,7 +17,7 @@
  * of truth; receipt + audit log can be back-filled). Centralizing the
  * write pattern preserves that behavior exactly.
  */
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { getDbClient } from "@/lib/db/access";
 import type { Database } from "@/lib/db/types";
 import { asFullState } from "@/lib/db/game/serverGameStatePayload";
 
@@ -66,7 +66,7 @@ export interface MergeAuditEntry {
 export async function loadFullGameStateForMerge(
   userId: string,
 ): Promise<ServerGameStateRow | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("server_game_state")
@@ -100,7 +100,7 @@ export async function moveGuestDataOntoAuthUser(
   authUserId: string,
   guestState: ServerGameStateRow,
 ): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
   const now = new Date().toISOString();
   const { error } = await supabase
@@ -146,7 +146,7 @@ export async function archiveGuestProfile(
   guestUserId: string,
   authUserId: string,
 ): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from("profiles")
@@ -172,7 +172,7 @@ export async function supersedeGuestIdentities(
   guestUserId: string,
   googleUserId: string,
 ): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from("guest_identities")
@@ -206,7 +206,7 @@ export async function insertMergeReceipt(
     google_state_snapshot?: unknown;
   },
 ): Promise<string | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("merge_receipts")
@@ -241,7 +241,7 @@ export async function insertMergeReceipt(
 export async function insertMergeAuditLog(
   values: MergeAuditEntry,
 ): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
   const { error } = await supabase.from("merge_audit_log").insert({
     ...values,
