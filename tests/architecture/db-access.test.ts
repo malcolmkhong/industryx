@@ -87,6 +87,33 @@ describe('DB-015 — privileged client boundary', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('canonical names (getDbClient etc.) also stay inside the boundary', () => {
+    // BUG-077 Task 4: the canonical names are the new public surface
+    // and must also stay out of source files. The MIGRATABLE_NAMES
+    // array above scans for both, but this assertion makes the
+    // canonical-name invariant explicit in the test report.
+    const canonicalNames = ['getDbClient', 'requireDbClient', 'isDbClientConfigured'];
+    const canonicalOffenders = offenders.filter((o) =>
+      canonicalNames.includes(o.name),
+    );
+    expect(canonicalOffenders).toEqual([]);
+  });
+
+  it('reports legacy vs canonical offender counts (BUG-077 progress meter)', () => {
+    // Soft assertion — both buckets must be empty at Task 9 commit.
+    // Right now we only enforce the canonical one is empty (legacy
+    // bucket still has 68 files at the start of Task 5).
+    const legacyNames = ['createServiceRoleClient', 'isServiceRoleConfigured'];
+    const canonicalNames = ['getDbClient', 'requireDbClient', 'isDbClientConfigured'];
+    const legacy = offenders.filter((o) => legacyNames.includes(o.name));
+    const canonical = offenders.filter((o) => canonicalNames.includes(o.name));
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[BUG-077] Boundary offenders: legacy=${legacy.length} canonical=${canonical.length}`,
+    );
+    expect(canonical).toEqual([]);
+  });
+
   it('exposes the canonical boundary module', () => {
     const boundary = readFileSync(
       join(SRC, 'lib', 'db', 'access', 'index.ts'),
