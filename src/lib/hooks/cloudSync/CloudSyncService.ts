@@ -32,6 +32,14 @@ type BlockListener = (blocked: CloudBlockState | null) => void;
 export class CloudSyncService {
   private userId: string | null = null;
   private isServerAuthoritative = false;
+  // Hydration guard (BUG-094): set to true once the orchestrator has
+  // applied server-loaded state at least once during the current session.
+  // The save() entry point blocks writes while false so a stub/initial
+  // store (gameTick=0, money=initial) cannot ship to the server before
+  // the cloud load completes — which would otherwise trigger the
+  // "Game tick went backwards" critical violation and (until 9ac2557d)
+  // bypass admin override and wipe the server-authoritative state.
+  private isHydrated = false;
   private serverStateHash: string | null = null;
   private serverStateVersion: number | null = null;
   private blockedState: CloudBlockState | null = null;
@@ -45,6 +53,31 @@ export class CloudSyncService {
 
   setUserId(userId: string | null): void {
     this.userId = userId;
+    if (userId === null) {
+      // Signing out / identity change — drop the hydration flag so the
+      // next sign-in must load before saving. Resetting here too because
+      // clearPreviousUserState also resets the Zustand store to stub.
+      this.isHydrated = false;
+    }
+  }
+
+  /**
+   * Mark the cloud layer as hydrated (server-authoritative state has
+   * been applied to the local store at least once). Called by the
+   * orchestrator inside `applyServerState(...)` AFTER the store has
+   * been updated with the loaded fullState. Until this is set, save()
+   * refuses to write — preventing stub-state wipes during hot reloads,
+   * bootstrap races, or slow-network first paints.
+   */
+  markHydrated(): void {
+    if (!this.isHydrated) {
+      this.isHydrated = true;
+      this.notify();
+    }
+  }
+
+  isHydratedState(): boolean {
+    return this.isHydrated;
   }
 
   getUserId(): string | null {
@@ -204,6 +237,19 @@ export class CloudSyncService {
   ): Promise<SyncResult> {
     if (!this.userId) return { success: false, error: "Not authenticated" };
     if (this.isSyncing) return { success: false, error: "Already syncing" };
+    // BUG-094 hydration guard: refuse to save until the orchestrator has
+    // applied server-loaded state. A stub store (gameTick=0, money=initial)
+    // would otherwise violate "Game tick went backwards" and (until 9ac2557d)
+    // be persisted by the admin override, wiping the server state.
+    // This is also defensive against HMR re-mounts, page reloads, and
+    // double-tab races where the JS bundle initializes with stub values
+    // before the bootstrap response lands.
+    if (!this.isHydrated) {
+      return {
+        success: false,
+        error: "Cloud not yet hydrated — skipping save to prevent state wipe",
+      };
+    }
     this.isSyncing = true;
     this.notify();
     try {

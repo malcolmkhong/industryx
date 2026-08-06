@@ -281,6 +281,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 () => extractGameState(),
               );
             }
+            // BUG-094: hydration guard. The store now mirrors what the
+            // server gave us (either via bootstrap gameState or via
+            // hydrateInitialState()). Mark the cloud layer hydrated so
+            // auto-save is allowed to proceed. Without this, a stub
+            // Zustand store can ship before bootstrap completes — see
+            // the production incident that wiped the auth account's
+            // game on 2026-08-06.
+            cloudSync.markHydrated();
             if (!isGuest && needsStateLoad && !gameState) {
               void cloudSync.load().then((r) => {
                 if (r.success && r.data && r.conflict === "cloud") {
