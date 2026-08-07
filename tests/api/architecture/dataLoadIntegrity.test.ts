@@ -135,6 +135,13 @@ function buildMockSupabase({ sessionUserId = null, rpcScript = {} }: MockSupabas
     return { data: script[fnName] ?? null, error: null };
   });
   return {
+    // BUG-077 Task 9: canonical surface is getDbClient +
+    // requireDbClient + isDbClientConfigured. Legacy aliases kept
+    // so other tests still import them. Production code (post
+    // Task 9) only uses the canonical names.
+    getDbClient: () => ({ rpc }),
+    requireDbClient: () => ({ rpc }),
+    isDbClientConfigured: () => true,
     createServiceRoleClient: () => ({ rpc }),
     createClient: async () => ({
       auth: {

@@ -46,8 +46,8 @@ vi.mock("@/lib/auth/rateLimiter", () => ({
 
 const serverGameStateMock = vi.hoisted(() => ({
   stateRows: new Map<string, Record<string, unknown>>(),
-  loadServerGameStateLite: vi.fn(async (userId: string) =>
-    serverGameStateMock.stateRows.get(userId) ?? null,
+  loadServerGameStateLite: vi.fn(
+    async (userId: string) => serverGameStateMock.stateRows.get(userId) ?? null,
   ),
   buildCompleteFullStateForServerRow: vi.fn(
     async (row: Record<string, unknown>) => ({
@@ -93,7 +93,10 @@ interface MockSupabaseOpts {
   rpcScript?: RpcScript;
 }
 
-function buildMockSupabase({ sessionUserId = null, rpcScript = {} }: MockSupabaseOpts) {
+function buildMockSupabase({
+  sessionUserId = null,
+  rpcScript = {},
+}: MockSupabaseOpts) {
   // Default: each RPC returns the empty success row shape.
   const defaultRow = (extra: object) => ({
     status: "OK",
@@ -149,6 +152,16 @@ function buildMockSupabase({ sessionUserId = null, rpcScript = {} }: MockSupabas
   });
 
   return {
+    // BUG-077 Task 9: the canonical surface is getDbClient +
+    // requireDbClient + isDbClientConfigured. Legacy aliases are
+    // retained for any other tests that still import them, but
+    // production code (post-Task-9) only uses the canonical names.
+    getDbClient: () => ({ rpc }),
+    requireDbClient: () => ({ rpc }),
+    isDbClientConfigured: () => true,
+    // Legacy aliases — kept so callers that still import the old
+    // names compile. Empty no-op functions for the ones the test
+    // doesn't exercise.
     createServiceRoleClient: () => ({ rpc }),
     createClient: async () => ({
       auth: {
@@ -157,7 +170,9 @@ function buildMockSupabase({ sessionUserId = null, rpcScript = {} }: MockSupabas
           error: null,
         }),
         getSession: vi.fn().mockResolvedValue({
-          data: { session: sessionUserId ? { user: { id: sessionUserId } } : null },
+          data: {
+            session: sessionUserId ? { user: { id: sessionUserId } } : null,
+          },
           error: null,
         }),
       },
@@ -194,8 +209,10 @@ type BootstrapSupabaseMock = {
   isServiceRoleConfigured: () => boolean;
 };
 
-async function loadRouteWith(mock: BootstrapSupabaseMock): Promise<ImportedRoute> {
-  vi.doMock('@/lib/db/access', () => mock);
+async function loadRouteWith(
+  mock: BootstrapSupabaseMock,
+): Promise<ImportedRoute> {
+  vi.doMock("@/lib/db/access", () => mock);
   vi.resetModules();
   return import("@/app/api/auth/bootstrap/route");
 }
@@ -241,27 +258,24 @@ describe("POST /api/auth/bootstrap", () => {
       last_saved_at: null,
       cheat_flag_count: 0,
     });
-    serverGameStateMock.stateRows.set(
-      "55555555-5555-4555-8555-555555555555",
-      {
-        full_state: {},
-        money: 2000,
-        total_money_earned: 0,
-        research_points: 0,
-        buildings: [],
-        buildings_count: 0,
-        completed_research: [],
-        resources: { iron: 0 },
-        workers: [],
-        game_tick: 0,
-        game_speed: 1,
-        state_hash: "hash-signed-out",
-        state_version: 1,
-        last_tick_at: null,
-        last_saved_at: null,
-        cheat_flag_count: 0,
-      },
-    );
+    serverGameStateMock.stateRows.set("55555555-5555-4555-8555-555555555555", {
+      full_state: {},
+      money: 2000,
+      total_money_earned: 0,
+      research_points: 0,
+      buildings: [],
+      buildings_count: 0,
+      completed_research: [],
+      resources: { iron: 0 },
+      workers: [],
+      game_tick: 0,
+      game_speed: 1,
+      state_hash: "hash-signed-out",
+      state_version: 1,
+      last_tick_at: null,
+      last_saved_at: null,
+      cheat_flag_count: 0,
+    });
   });
 
   it("rejects missing deviceId with 400 INVALID_BOOTSTRAP_REQUEST", async () => {
@@ -632,7 +646,10 @@ describe("POST /api/auth/bootstrap", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
-    const body = await readJson<{ code?: string; archiveReceiptId?: string | null }>(res);
+    const body = await readJson<{
+      code?: string;
+      archiveReceiptId?: string | null;
+    }>(res);
     expect(body.code).toBe("BOOTSTRAP_READY");
     expect(body.archiveReceiptId).toBe(archiveReceiptId);
   });
@@ -700,11 +717,29 @@ describe("POST /api/auth/bootstrap", () => {
   });
 
   it("returns 503 BOOTSTRAP_UNAVAILABLE when service-role client is missing", async () => {
+    // BUG-077 Task 9: production code uses the canonical
+    // requireDbClient() which throws DbClientNotConfiguredError when
+    // the service-role client is missing. The route catches that
+    // and surfaces 503. The legacy createServiceRoleClient -> null
+    // path is kept for back-compat with old mocks but the route
+    // now goes through getDbClient/requireDbClient.
     const mock = {
+      getDbClient: () => null,
+      requireDbClient: () => {
+        const err = new Error(
+          "Supabase service-role client is not configured (SUPABASE_SERVICE_ROLE_KEY missing).",
+        );
+        err.name = "DbClientNotConfiguredError";
+        throw err;
+      },
+      isDbClientConfigured: () => false,
+      // Legacy aliases still present.
       createServiceRoleClient: () => null,
       createClient: async () => ({
         auth: {
-          getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: null }, error: null }),
         },
       }),
       isSupabaseConfigured: () => true,
@@ -731,7 +766,9 @@ describe("POST /api/auth/bootstrap", () => {
       createServiceRoleClient: () => ({ rpc: errorRpc }),
       createClient: async () => ({
         auth: {
-          getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: null }, error: null }),
         },
       }),
       isSupabaseConfigured: () => true,

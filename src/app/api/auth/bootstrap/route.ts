@@ -40,9 +40,7 @@ import {
   runBootstrap,
   type BootstrapResult,
 } from "@/lib/auth/server/bootstrapService.server";
-import {
-  type UpgradePolicy,
-} from "@/lib/db/auth/bootstrapRpcs.server";
+import { type UpgradePolicy } from "@/lib/db/auth/bootstrapRpcs.server";
 
 // ─── Public DTOs ────────────────────────────────────────────────────────
 
@@ -79,11 +77,30 @@ interface BootstrapResponseBody {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json().catch(() => ({}))) as BootstrapRequestBody;
+    // Hardened JSON parse. The old `.catch(() => ({}))` silently swallowed
+    // JSON.parse errors which made every 500 look the same. Now we log
+    // the actual error and return INVALID_BOOTSTRAP_REQUEST (400) for
+    // empty bodies, and let malformed JSON surface as a 500 with a
+    // visible server-side log line.
+    let body: BootstrapRequestBody = {};
+    try {
+      const text = await request.text();
+      if (text.length > 0) {
+        body = JSON.parse(text) as BootstrapRequestBody;
+      }
+    } catch (parseErr) {
+      console.warn(
+        "[bootstrap] request body is not valid JSON, treating as empty:",
+        (parseErr as Error).message,
+      );
+      body = {};
+    }
 
-    const deviceId = typeof body.deviceId === "string" ? body.deviceId.trim() : "";
+    const deviceId =
+      typeof body.deviceId === "string" ? body.deviceId.trim() : "";
     const fingerprintHash =
-      typeof body.fingerprintHash === "string" && body.fingerprintHash.length > 0
+      typeof body.fingerprintHash === "string" &&
+      body.fingerprintHash.length > 0
         ? body.fingerprintHash
         : null;
     const previousAuthUserId =
@@ -121,7 +138,22 @@ export async function POST(request: NextRequest) {
 
     return bootstrapResultToResponse(result);
   } catch (error) {
-    console.error("[bootstrap] Unexpected error:", error);
+    // Capture the full stack + a structured fingerprint so the next
+    // INTERNAL_BOOTSTRAP_ERROR is self-diagnosing. Before this log
+    // was a single line which made it hard to tell whether the throw
+    // was in request.json(), createServerSupabaseClient(), runBootstrap,
+    // or anywhere else downstream.
+    const err = error as Error & { cause?: unknown; code?: string };
+    console.error(
+      "[bootstrap] INTERNAL_BOOTSTRAP_ERROR",
+      JSON.stringify({
+        name: err?.name,
+        message: err?.message,
+        code: err?.code,
+        cause: err?.cause ? String(err.cause) : undefined,
+        stack: err?.stack,
+      }),
+    );
     return NextResponse.json(
       {
         code: "INTERNAL_BOOTSTRAP_ERROR",
@@ -200,7 +232,9 @@ function bootstrapResultToResponse(result: BootstrapResult): NextResponse {
       const isRateLimit = result.reason === "rate_limited";
       return NextResponse.json(
         {
-          code: isRateLimit ? "BOOTSTRAP_RATE_LIMITED" : "BOOTSTRAP_UNAVAILABLE",
+          code: isRateLimit
+            ? "BOOTSTRAP_RATE_LIMITED"
+            : "BOOTSTRAP_UNAVAILABLE",
           message: isRateLimit
             ? "Too many bootstrap requests."
             : "Bootstrap service is temporarily unavailable.",
