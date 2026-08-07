@@ -53,9 +53,15 @@ vi.mock("@/lib/db/access", () => {
     then: vi.fn(),
   };
   return {
-
     // BUG-077: canonical boundary names mirror the legacy alias.
-    getDbClient: vi.fn(() => ({ from: mockFrom, rpc: mockRpc, auth: { getUser: mockGetUser, admin: { getUserById: mockAdminGetUserById }, }, })),
+    getDbClient: vi.fn(() => ({
+      from: mockFrom,
+      rpc: mockRpc,
+      auth: {
+        getUser: mockGetUser,
+        admin: { getUserById: mockAdminGetUserById },
+      },
+    })),
     requireDbClient: () => ({ from: vi.fn() }),
     isDbClientConfigured: vi.fn(() => true),
     createClient: vi.fn(async () => null),
@@ -136,6 +142,31 @@ vi.mock("@/lib/db/game/serverGameState", () => ({
     gameSpeed: row.game_speed,
   })),
   isServerGameStateAvailable: vi.fn(() => true),
+  // FIX 9 — sync route calls saveServerGameStateOptimistic to
+  // server-stamp lastOnlineTimestamp. The mock captures the CAS
+  // patch so the test can assert the override.
+  saveServerGameStateOptimistic: saveServerGameStateOptimistic,
+  // syncPlayerProgressGameState is also called by the sync route;
+  // stub to a no-op so the test reaches the assertion under test.
+  syncPlayerProgressGameState: vi.fn(async (userId: string) => ({
+    user_id: userId,
+    money: 0,
+    total_money_earned: 0,
+    research_points: 0,
+    buildings: [],
+    buildings_count: 0,
+    completed_research: [],
+    resources: {},
+    workers: [],
+    game_tick: 0,
+    game_speed: 1,
+    state_hash: "test-hash",
+    state_version: 0,
+    last_tick_at: "2026-01-01T00:00:00.000Z",
+    last_saved_at: "2026-01-01T00:00:00.000Z",
+    cheat_flag_count: 0,
+    full_state: {},
+  })),
 }));
 
 vi.mock("@/lib/db/game/serverGameStatePayload", () => ({
@@ -159,11 +190,14 @@ vi.mock("@/lib/db/game/serverGameStatePayload", () => ({
   },
 }));
 
-vi.mock("@/lib/game/state/persistence/serverGameStatePersistence.server", () => ({
-  initializeCompleteServerGameState: vi.fn(async () => null),
-  persistServerGameStateOptimistic: saveServerGameStateOptimistic,
-  syncLegacyPlayerProgressProjection: vi.fn(async () => ({ ok: true })),
-}));
+vi.mock(
+  "@/lib/game/state/persistence/serverGameStatePersistence.server",
+  () => ({
+    initializeCompleteServerGameState: vi.fn(async () => null),
+    persistServerGameStateOptimistic: saveServerGameStateOptimistic,
+    syncLegacyPlayerProgressProjection: vi.fn(async () => ({ ok: true })),
+  }),
+);
 
 vi.mock("@/lib/game/shared/utils/saveMigration/saveMigrations", () => ({}));
 

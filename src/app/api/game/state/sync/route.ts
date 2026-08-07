@@ -5,19 +5,19 @@
 // LEAN MVP — slim player_progress sync
 // ============================================
 
-import { NextResponse } from 'next/server';
-import { getDbClient } from '@/lib/db/access';
-import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
-import { getServerNowISOOrNull } from '@/lib/auth/serverTime';
+import { NextResponse } from "next/server";
+import { getDbClient } from "@/lib/db/access";
+import { verifyAuthAndOwnership } from "@/lib/auth/verifyAuth";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
+import { getServerNowISOOrNull } from "@/lib/auth/serverTime";
 import {
   validateGameState,
   extractValidatedSaveFields,
   logActionAsync,
   isAccountLocked,
   flagCheatAttempt,
-} from '@/lib/auth/gameStateValidator';
-import { isAdminUserId } from '@/lib/auth/admin';
+} from "@/lib/auth/gameStateValidator";
+import { isAdminUserId } from "@/lib/auth/admin";
 import {
   loadServerGameStateLite,
   loadServerGameStateForDeltaCheck,
@@ -26,40 +26,53 @@ import {
   saveServerGameStateOptimistic,
   syncPlayerProgressGameState,
   isServerGameStateAvailable,
-} from '@/lib/db/game/serverGameState';
-import { asFullState, stripUIFields } from '@/lib/db/game/serverGameStatePayload';
+} from "@/lib/db/game/serverGameState";
+import {
+  asFullState,
+  stripUIFields,
+} from "@/lib/db/game/serverGameStatePayload";
 
 // GET /api/game/state/sync?userId=xxx - Load authoritative server game state
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
+  const userId = searchParams.get("userId");
 
   if (!userId) {
-    return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    return NextResponse.json({ error: "userId is required" }, { status: 400 });
   }
 
   const auth = await verifyAuthAndOwnership(userId);
   if (!auth.success) return auth.response;
 
-  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.sync, '/api/game/state/sync');
+  const rateLimitResponse = await checkRateLimit(
+    auth.userId,
+    RATE_LIMITS.sync,
+    "/api/game/state/sync",
+  );
   if (rateLimitResponse) return rateLimitResponse;
 
   const lockStatus = await isAccountLocked(auth.userId);
   if (lockStatus.locked && !isAdminUserId(auth.userId)) {
     return NextResponse.json(
-      { error: 'Account is locked', code: 'ACCOUNT_LOCKED', reason: lockStatus.reason },
+      {
+        error: "Account is locked",
+        code: "ACCOUNT_LOCKED",
+        reason: lockStatus.reason,
+      },
       { status: 403 },
     );
   }
 
   // Admin override: if admin is locked (e.g., by cheat detection), allow access but log
   if (lockStatus.locked && isAdminUserId(auth.userId)) {
-    console.warn(`[GameStateAPI] Admin ${auth.userId} bypassing account lock for GET`);
+    console.warn(
+      `[GameStateAPI] Admin ${auth.userId} bypassing account lock for GET`,
+    );
   }
 
   if (!isServerGameStateAvailable()) {
     return NextResponse.json(
-      { error: 'Service temporarily unavailable — database not configured' },
+      { error: "Service temporarily unavailable — database not configured" },
       { status: 503 },
     );
   }
@@ -70,7 +83,7 @@ export async function GET(request: Request) {
     const initialized = await initializeGuestGameState(userId);
     if (!initialized) {
       return NextResponse.json(
-        { error: 'Failed to initialize game state', code: 'STATE_INIT_FAILED' },
+        { error: "Failed to initialize game state", code: "STATE_INIT_FAILED" },
         { status: 500 },
       );
     }
@@ -81,9 +94,9 @@ export async function GET(request: Request) {
   try {
     completeFullState = await buildCompleteFullStateForServerRow(data);
   } catch (err) {
-    console.error('[GameStateAPI] full_state hydration failed:', err);
+    console.error("[GameStateAPI] full_state hydration failed:", err);
     return NextResponse.json(
-      { error: 'Invalid server game state', code: 'INVALID_SERVER_STATE' },
+      { error: "Invalid server game state", code: "INVALID_SERVER_STATE" },
       { status: 503 },
     );
   }
@@ -93,12 +106,12 @@ export async function GET(request: Request) {
   // warns and skips the insert instead of silently writing 0.
   logActionAsync({
     userId: auth.userId,
-    actionType: 'load',
-    payload: { source: 'server_game_state' },
+    actionType: "load",
+    payload: { source: "server_game_state" },
     gameTick: Number(data.game_tick),
     moneyAfter: Number(data.money),
     isValid: true,
-    validationRisk: 'none',
+    validationRisk: "none",
   });
 
   return NextResponse.json({
@@ -143,33 +156,46 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const { userId, gameState } = body;
 
   if (!userId || !gameState) {
-    return NextResponse.json({ error: 'userId and gameState are required' }, { status: 400 });
+    return NextResponse.json(
+      { error: "userId and gameState are required" },
+      { status: 400 },
+    );
   }
 
   const auth = await verifyAuthAndOwnership(userId);
   if (!auth.success) return auth.response;
 
-  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.sync, '/api/game/state/sync');
+  const rateLimitResponse = await checkRateLimit(
+    auth.userId,
+    RATE_LIMITS.sync,
+    "/api/game/state/sync",
+  );
   if (rateLimitResponse) return rateLimitResponse;
 
   // Check if account is locked (admins bypass lock — they can self-unlock via admin panel)
   const lockStatus = await isAccountLocked(auth.userId);
   if (lockStatus.locked && !isAdminUserId(auth.userId)) {
     return NextResponse.json(
-      { error: 'Account is locked', code: 'ACCOUNT_LOCKED', reason: lockStatus.reason },
+      {
+        error: "Account is locked",
+        code: "ACCOUNT_LOCKED",
+        reason: lockStatus.reason,
+      },
       { status: 403 },
     );
   }
 
   // Admin override: if admin is locked (e.g., by cheat detection), allow save but log
   if (lockStatus.locked && isAdminUserId(auth.userId)) {
-    console.warn(`[GameStateAPI] Admin ${auth.userId} bypassing account lock for POST`);
+    console.warn(
+      `[GameStateAPI] Admin ${auth.userId} bypassing account lock for POST`,
+    );
   }
 
   const isUserAdmin = isAdminUserId(auth.userId);
@@ -191,13 +217,13 @@ export async function POST(request: Request) {
     : null;
   if (serverTimestamp == null) {
     console.error(
-      '[GameStateAPI] now_iso() RPC unavailable — failing the save closed. ' +
-        'Client should retry.',
+      "[GameStateAPI] now_iso() RPC unavailable — failing the save closed. " +
+        "Client should retry.",
     );
     return NextResponse.json(
       {
-        error: 'Server time source unavailable — retry',
-        code: 'SERVER_TIME_UNAVAILABLE',
+        error: "Server time source unavailable — retry",
+        code: "SERVER_TIME_UNAVAILABLE",
       },
       { status: 503 },
     );
@@ -210,12 +236,18 @@ export async function POST(request: Request) {
   // here was removed because it could not be trusted — client-supplied
   // version numbers are not part of the server contract.
   const currentServerState = await loadServerGameStateForDeltaCheck(userId);
-  const previousState = currentServerState?.full_state as Record<string, unknown> | null;
+  const previousState = currentServerState?.full_state as Record<
+    string,
+    unknown
+  > | null;
 
   // Validate the incoming state
-  const validation = await validateGameState(gameState, previousState || undefined);
+  const validation = await validateGameState(
+    gameState,
+    previousState || undefined,
+  );
 
-  if (validation.riskLevel === 'critical' || validation.riskLevel === 'high') {
+  if (validation.riskLevel === "critical" || validation.riskLevel === "high") {
     // Admin bypass (high only): allow saves with HIGH-severity violations
     // (e.g. minor money delta spikes) so admins can self-test edge cases.
     // CRITICAL violations are NEVER bypassed — they indicate state-tampering
@@ -228,45 +260,58 @@ export async function POST(request: Request) {
     // "Game tick went backwards: 0 < 53138 (drift=53138)" was bypassed by
     // the admin override and the player's full_state was wiped to defaults.
     // That override no longer exists for critical violations.
-    if (isUserAdmin && validation.riskLevel !== 'critical') {
-      console.warn(`[GameStateAPI] Admin ${auth.userId} bypassing cheat detection (high only): ${validation.violations.join('; ')}`);
+    if (isUserAdmin && validation.riskLevel !== "critical") {
+      console.warn(
+        `[GameStateAPI] Admin ${auth.userId} bypassing cheat detection (high only): ${validation.violations.join("; ")}`,
+      );
       logActionAsync({
         userId: auth.userId,
-        actionType: 'save',
-        payload: { source: 'server_game_state', violations: validation.violations, riskLevel: validation.riskLevel, adminBypass: true },
+        actionType: "save",
+        payload: {
+          source: "server_game_state",
+          violations: validation.violations,
+          riskLevel: validation.riskLevel,
+          adminBypass: true,
+        },
         gameTick: Number(gameState.gameTick),
         moneyAfter: Number(gameState.money),
         checksum: validation.checksum,
         isValid: false,
         validationRisk: validation.riskLevel,
-        rejectionReason: `Admin bypass: ${validation.riskLevel} violation: ${validation.violations.join('; ')}`,
+        rejectionReason: `Admin bypass: ${validation.riskLevel} violation: ${validation.violations.join("; ")}`,
       });
       // Continue to save — don't reject
     } else {
       await flagCheatAttempt(
         auth.userId,
-        validation.riskLevel === 'critical' ? 'state_tampering' : 'money_manipulation',
-        `Server state sync rejected: ${validation.violations.join('; ')}`,
+        validation.riskLevel === "critical"
+          ? "state_tampering"
+          : "money_manipulation",
+        `Server state sync rejected: ${validation.violations.join("; ")}`,
         validation.riskLevel,
         { fingerprintHash: body.fingerprintHash, deviceId: body.deviceId },
       );
 
       logActionAsync({
         userId: auth.userId,
-        actionType: 'save',
-        payload: { source: 'server_game_state', violations: validation.violations, riskLevel: validation.riskLevel },
+        actionType: "save",
+        payload: {
+          source: "server_game_state",
+          violations: validation.violations,
+          riskLevel: validation.riskLevel,
+        },
         gameTick: Number(gameState.gameTick),
         moneyAfter: Number(gameState.money),
         checksum: validation.checksum,
         isValid: false,
         validationRisk: validation.riskLevel,
-        rejectionReason: `${validation.riskLevel} violation: ${validation.violations.join('; ')}`,
+        rejectionReason: `${validation.riskLevel} violation: ${validation.violations.join("; ")}`,
       });
 
       return NextResponse.json(
         {
-          error: 'Game state validation failed',
-          code: 'VALIDATION_FAILED',
+          error: "Game state validation failed",
+          code: "VALIDATION_FAILED",
           violations: validation.violations,
           riskLevel: validation.riskLevel,
         },
@@ -310,12 +355,17 @@ export async function POST(request: Request) {
     try {
       currentVersion = Number(currentServerState.state_version);
       if (!Number.isInteger(currentVersion) || currentVersion < 0) {
-        throw new Error(`state_version invalid: ${currentServerState.state_version}`);
+        throw new Error(
+          `state_version invalid: ${currentServerState.state_version}`,
+        );
       }
     } catch (err) {
-      console.error('[GameStateAPI] state_version validation failed:', err);
+      console.error("[GameStateAPI] state_version validation failed:", err);
       return NextResponse.json(
-        { error: 'Invalid server state version', code: 'INVALID_STATE_VERSION' },
+        {
+          error: "Invalid server state version",
+          code: "INVALID_STATE_VERSION",
+        },
         { status: 503 },
       );
     }
@@ -329,9 +379,9 @@ export async function POST(request: Request) {
   try {
     saveFields = extractValidatedSaveFields(gameState);
   } catch (err) {
-    console.error('[GameStateAPI] game state field validation failed:', err);
+    console.error("[GameStateAPI] game state field validation failed:", err);
     return NextResponse.json(
-      { error: 'Invalid game state fields', code: 'INVALID_SAVE_FIELDS' },
+      { error: "Invalid game state fields", code: "INVALID_SAVE_FIELDS" },
       { status: 503 },
     );
   }
@@ -352,6 +402,20 @@ export async function POST(request: Request) {
     gameState as Record<string, unknown>,
   );
 
+  // FIX 9 (2026-07) — server-stamp `lastOnlineTimestamp` from the
+  // DB-authoritative clock (`serverTimestamp` from now_iso() RPC)
+  // so the anti-cheat tick-rate check in `gameStateValidator` has
+  // a fresh "last seen" anchor on every save. Without this,
+  // `currTime > prevTime` was false on the next save (or never
+  // set), and the rate check never ran. The server is the only
+  // source of truth for "when did this save land" — the client
+  // can fake a slow interval otherwise. We pass the parsed ms
+  // so downstream consumers (e.g. `applyElapsedTicks`) compare
+  // numeric ms values consistently.
+  sanitizedFullState.lastOnlineTimestamp = serverTimestamp
+    ? Date.parse(serverTimestamp)
+    : Date.now();
+
   // Persist with optimistic locking (state_version CAS). Cloud save is not
   // tick settlement — `last_tick_at` stays owned by applyElapsedTicks /
   // offline-progress / live-tick paths after runServerTicks succeeds.
@@ -366,14 +430,17 @@ export async function POST(request: Request) {
     const initialized = await initializeGuestGameState(userId);
     if (!initialized) {
       return NextResponse.json(
-        { error: 'Failed to initialize game state', code: 'STATE_INIT_FAILED' },
+        { error: "Failed to initialize game state", code: "STATE_INIT_FAILED" },
         { status: 500 },
       );
     }
     const initVersion = Number(initialized.state_version);
     if (!Number.isInteger(initVersion) || initVersion < 0) {
       return NextResponse.json(
-        { error: 'Invalid initial state version', code: 'INVALID_STATE_VERSION' },
+        {
+          error: "Invalid initial state version",
+          code: "INVALID_STATE_VERSION",
+        },
         { status: 503 },
       );
     }
@@ -381,26 +448,22 @@ export async function POST(request: Request) {
   }
 
   const nextStateVersion = baseVersion + 1;
-  const upsertData = await saveServerGameStateOptimistic(
-    userId,
-    baseVersion,
-    {
-      money,
-      total_money_earned: totalMoneyEarned,
-      research_points: researchPoints,
-      buildings: asFullState(gameState.buildings),
-      buildings_count: buildingsCount,
-      completed_research: asFullState(gameState.completedResearch),
-      resources: asFullState(gameState.resources),
-      workers: asFullState(gameState.workers),
-      game_tick: gameTick,
-      game_speed: gameSpeed,
-      full_state: asFullState(sanitizedFullState),
-      state_hash: validation.checksum,
-      state_version: nextStateVersion,
-      last_saved_at: serverTimestamp,
-    },
-  );
+  const upsertData = await saveServerGameStateOptimistic(userId, baseVersion, {
+    money,
+    total_money_earned: totalMoneyEarned,
+    research_points: researchPoints,
+    buildings: asFullState(gameState.buildings),
+    buildings_count: buildingsCount,
+    completed_research: asFullState(gameState.completedResearch),
+    resources: asFullState(gameState.resources),
+    workers: asFullState(gameState.workers),
+    game_tick: gameTick,
+    game_speed: gameSpeed,
+    full_state: asFullState(sanitizedFullState),
+    state_hash: validation.checksum,
+    state_version: nextStateVersion,
+    last_saved_at: serverTimestamp,
+  });
 
   if (!upsertData) {
     // CAS miss or DB error. Could be a concurrent live-tick / offline
@@ -427,13 +490,17 @@ export async function POST(request: Request) {
         };
       }
     } catch (reloadErr) {
-      console.error('[GameStateAPI] failed to reload state for 409 body:', reloadErr);
+      console.error(
+        "[GameStateAPI] failed to reload state for 409 body:",
+        reloadErr,
+      );
     }
 
     return NextResponse.json(
       {
-        error: 'State version conflict — server state changed. Re-fetch and retry.',
-        code: 'STATE_VERSION_CONFLICT',
+        error:
+          "State version conflict — server state changed. Re-fetch and retry.",
+        code: "STATE_VERSION_CONFLICT",
         ...(serverStateForClient ? { serverState: serverStateForClient } : {}),
       },
       { status: 409 },
@@ -441,18 +508,18 @@ export async function POST(request: Request) {
   }
 
   // Sync to player_progress for backwards compatibility (thin: user_id + game_state only).
-    // Uses sanitizedFullState (UI fields stripped) so the legacy column matches the
-    // server_game_state.full_state column and stale clients cannot smuggle UI in either place.
-    await syncPlayerProgressGameState(userId, sanitizedFullState);
+  // Uses sanitizedFullState (UI fields stripped) so the legacy column matches the
+  // server_game_state.full_state column and stale clients cannot smuggle UI in either place.
+  await syncPlayerProgressGameState(userId, sanitizedFullState);
 
   // Audit log — values validated inside logActionAsync per [SEC-011].
   // Use the validated save fields (already fail-closed above) rather
   // than the raw client-supplied values.
   logActionAsync({
     userId: auth.userId,
-    actionType: 'save',
+    actionType: "save",
     payload: {
-      source: 'server_game_state',
+      source: "server_game_state",
       buildingsCount,
       riskLevel: validation.riskLevel,
       stateVersion: nextStateVersion,
@@ -471,7 +538,9 @@ export async function POST(request: Request) {
     validation: {
       isValid: validation.isValid,
       riskLevel: validation.riskLevel,
-      ...(validation.violations.length > 0 ? { violations: validation.violations } : {}),
+      ...(validation.violations.length > 0
+        ? { violations: validation.violations }
+        : {}),
     },
   });
 }
