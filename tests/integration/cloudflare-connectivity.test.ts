@@ -178,7 +178,12 @@ describe('API Routes Connectivity', () => {
 // `node --test` reports at least one passing test in this file.
 
 describe("cloudflare-connectivity suite (smoke)", () => {
-  it("smoke test" + (LIVE ? " — live tests ran" : " — live tests skipped"), () => {
+  // The test name must be a clean ASCII string. Previously this
+  // contained a UTF-8 replacement character (U+FFFD) from a
+  // mojibake string, which the node:test runner's IPC structured-
+  // clone serializer rejected with "Unable to deserialize cloned
+  // data" â€” failing the entire file.
+  it(LIVE ? "smoke: live tests ran" : "smoke: live tests skipped", () => {
     assert.ok(true);
   });
 });
