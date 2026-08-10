@@ -123,27 +123,14 @@ describe('Tier Centralization SSOT', () => {
 
   describe('MAX_TIER is the highest tier in DB', () => {
     it('matches game_config_buildings.tier max (sanity)', async () => {
-      // This is a soft check — if Supabase is not configured, just skip
-      try {
-        const { createServiceRoleClient } = await import('@/lib/supabase/server');
-        const supabase = createServiceRoleClient();
-        if (!supabase) return; // not configured in tests
-        const { data } = await supabase
-          .from('game_config_buildings')
-          .select('tier')
-          .order('tier', { ascending: false })
-          .limit(1);
-        if (!data || data.length === 0) return;
-        const dbMaxTier = (data[0] as { tier: number }).tier;
-        // DB may have higher tiers than MAX_TIER (would mean SSOT is stale)
-        if (dbMaxTier > MAX_TIER) {
-          throw new Error(
-            `DB has tier ${dbMaxTier} but MAX_TIER is ${MAX_TIER}. Update src/lib/game/tiers.ts!`,
-          );
-        }
-      } catch {
-        // Network/DB unavailable in test env — soft skip
-      }
+      // This is a soft check — if Supabase is not configured, just skip.
+      // The previous implementation hit `@/lib/supabase/server`, which
+      // doesn't exist in the current source tree (the canonical client
+      // is `@/lib/db/access` and is already mocked above). Without a
+      // live DB connection, this assertion is best expressed as "MAX_TIER
+      // matches TIER_INFO.length - 1".
+      const lastTier = TIER_INFO[TIER_INFO.length - 1];
+      expect(lastTier.tier).toBe(MAX_TIER);
     });
   });
 });

@@ -6,16 +6,152 @@ import {
   isAllowedTable,
   type TableConfig,
 } from "@/lib/config/tables";
-import { getDbClient } from '@/lib/db/access';
+import { getDbClient } from "@/lib/db/access";
 import { CONFIG_TABLE_COLUMNS, type ConfigTableName } from "@/lib/db/types";
+import { invalidateCanonicalInitialStateCache } from "@/lib/db/infra/initialState.server";
 
 type RowBody = Record<string, unknown>;
+
+/**
+ * FIX A: Tables that feed `fetchCanonicalInitialState()`. After a
+ * successful write to one of these, the in-memory canonical state
+ * cache must be invalidated so the next guest does not see stale
+ * values for up to 5 min.
+ */
+const CANONICAL_FEEDING_TABLES = new Set<string>([
+  "game_config_game",
+  "game_config_resources",
+]);
+
+/**
+ * FIX B: Per-table validation rules that mirror the canonical state
+ * builder's contract. The admin tool must reject writes that would
+ * put the builder into a fail-closed state (null config, degenerate
+ * weather cadence, non-finite numbers).
+ *
+ * The validator runs BEFORE the DB write so the user gets a 400 with
+ * a descriptive error instead of a 500 from a downstream failure.
+ */
+interface CanonicalValidationError {
+  field: string;
+  message: string;
+}
+
+function validateCanonicalRow(
+  tableName: string,
+  row: RowBody,
+): CanonicalValidationError[] {
+  if (tableName === "game_config_game") {
+    const errors: CanonicalValidationError[] = [];
+    // Partial-update tolerance: only validate fields that are
+    // explicitly present in `row`. Undefined means "not being changed
+    // in this write" — the DB keeps the last valid value, which was
+    // guaranteed by the previous write through this same validator.
+    if ("starting_money" in row) {
+      const startingMoney = row.starting_money;
+      if (startingMoney === null) {
+        errors.push({
+          field: "starting_money",
+          message: "starting_money must be a finite number, not null",
+        });
+      } else if (
+        typeof startingMoney === "number" &&
+        !Number.isFinite(startingMoney)
+      ) {
+        errors.push({
+          field: "starting_money",
+          message: "starting_money must be a finite number (got non-finite)",
+        });
+      } else if (typeof startingMoney !== "number") {
+        // coerceColumnValue would coerce strings to NaN via parseFloat.
+        // Catch that here so the user gets a 400 instead of a 500.
+        const coerced =
+          typeof startingMoney === "string" ? parseFloat(startingMoney) : NaN;
+        if (!Number.isFinite(coerced)) {
+          errors.push({
+            field: "starting_money",
+            message: "starting_money must be a finite number (got non-numeric)",
+          });
+        }
+      }
+    }
+    const wmin = row.weather_change_min_ticks;
+    const wmax = row.weather_change_max_ticks;
+    // Partial-update tolerance: the validator only rejects writes that
+    // explicitly contain an invalid value. If only one cadence field
+    // is sent, the other is unchanged in the DB (and was guaranteed
+    // valid the last time it was written through this same validator).
+    if (
+      typeof wmin === "number" &&
+      typeof wmax === "number" &&
+      Number.isFinite(wmin) &&
+      Number.isFinite(wmax)
+    ) {
+      if (wmin <= 0 || wmax <= 0) {
+        errors.push({
+          field: "weather_change_min_ticks",
+          message:
+            "weather cadence must be positive (wmin > 0 AND wmax > 0); " +
+            `got wmin=${wmin}, wmax=${wmax}`,
+        });
+      } else if (wmin > wmax) {
+        errors.push({
+          field: "weather_change_min_ticks",
+          message:
+            "weather cadence must be ordered (wmin <= wmax); " +
+            `got wmin=${wmin}, wmax=${wmax}`,
+        });
+      }
+    } else if (typeof wmin === "number" && !Number.isFinite(wmin)) {
+      errors.push({
+        field: "weather_change_min_ticks",
+        message: "weather_change_min_ticks must be a finite positive number",
+      });
+    } else if (typeof wmax === "number" && !Number.isFinite(wmax)) {
+      errors.push({
+        field: "weather_change_max_ticks",
+        message: "weather_change_max_ticks must be a finite positive number",
+      });
+    }
+    return errors;
+  }
+  if (tableName === "game_config_resources") {
+    const errors: CanonicalValidationError[] = [];
+    if ("base_capacity" in row) {
+      const capacity = row.base_capacity;
+      if (capacity === null) {
+        errors.push({
+          field: "base_capacity",
+          message: "base_capacity must be a finite number, not null",
+        });
+      } else if (typeof capacity === "number" && !Number.isFinite(capacity)) {
+        errors.push({
+          field: "base_capacity",
+          message: "base_capacity must be a finite number (got non-finite)",
+        });
+      } else if (typeof capacity !== "number") {
+        const coerced =
+          typeof capacity === "string" ? parseFloat(capacity) : NaN;
+        if (!Number.isFinite(coerced)) {
+          errors.push({
+            field: "base_capacity",
+            message: "base_capacity must be a finite number (got non-numeric)",
+          });
+        }
+      }
+    }
+    return errors;
+  }
+  return [];
+}
 
 interface ColumnFilterQuery<TSelf> {
   eq(column: string, value: unknown): TSelf;
 }
 
-export function validateConfigTable(tableName: string):
+export function validateConfigTable(
+  tableName: string,
+):
   | { ok: true; tableConfig: TableConfig }
   | { ok: false; response: NextResponse } {
   if (!isAllowedTable(tableName)) {
@@ -62,10 +198,7 @@ export async function listConfigRows(
     }
 
     const url = new URL(requestUrl);
-    const page = Math.max(
-      1,
-      parseInt(url.searchParams.get("page") || "1", 10),
-    );
+    const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
     const pageSize = Math.min(
       500,
       Math.max(1, parseInt(url.searchParams.get("pageSize") || "50", 10)),
@@ -142,7 +275,10 @@ export async function createConfigRow(
     const rowBody = toRowBody(body);
     if (!rowBody) {
       return NextResponse.json(
-        { error: "Validation Error", message: "Request body must be an object" },
+        {
+          error: "Validation Error",
+          message: "Request body must be an object",
+        },
         { status: 400 },
       );
     }
@@ -154,6 +290,25 @@ export async function createConfigRow(
           error: "Validation Error",
           message: `Missing required fields: ${missingFields.join(", ")}`,
           missingFields,
+        },
+        { status: 400 },
+      );
+    }
+
+    // FIX B: pre-validate canonical-feeding tables so a downstream
+    // fail-closed (NaN config, inverted weather cadence) surfaces as
+    // a 400 with a descriptive error rather than a 500 from the
+    // canonical state builder.
+    const validationErrors = validateCanonicalRow(tableName, rowBody);
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Validation Error",
+          message:
+            "Row would put the canonical state builder into a fail-closed state",
+          validationErrors: validationErrors.map(
+            (e) => `${e.field}: ${e.message}`,
+          ),
         },
         { status: 400 },
       );
@@ -174,11 +329,22 @@ export async function createConfigRow(
       .single();
 
     if (error) {
-      console.error(`[Config] Error inserting into ${tableName}:`, error.message);
+      console.error(
+        `[Config] Error inserting into ${tableName}:`,
+        error.message,
+      );
       return NextResponse.json(
         { error: "Database Error", message: error.message },
         { status: 500 },
       );
+    }
+
+    // FIX A: invalidate the canonical state cache after a successful
+    // write to game_config_game / game_config_resources. Otherwise the
+    // next guest's initial state is the stale cached value for up to
+    // 5 min.
+    if (CANONICAL_FEEDING_TABLES.has(tableName)) {
+      invalidateCanonicalInitialStateCache();
     }
 
     await logAdminAction({
@@ -219,11 +385,21 @@ export async function getConfigRow(
     // The shape is validated at runtime via `validateConfigTable` above
     // and the column list comes from the explicit `CONFIG_TABLE_COLUMNS`
     // whitelist.
-    const query = (supabase.from(tableName as ConfigTableName) as unknown as {
-      select(cols: string): {
-        eq(col: string, val: unknown): { single(): Promise<{ data: unknown; error: { code?: string; message: string } | null }> };
-      };
-    })
+    const query = (
+      supabase.from(tableName as ConfigTableName) as unknown as {
+        select(cols: string): {
+          eq(
+            col: string,
+            val: unknown,
+          ): {
+            single(): Promise<{
+              data: unknown;
+              error: { code?: string; message: string } | null;
+            }>;
+          };
+        };
+      }
+    )
       // P2-14a: PER-003 forbids select('*'). Fall back to the shared
       // whitelist; unknown tables (admin tool lists arbitrary
       // game_config_*) use their declared column list.
@@ -236,7 +412,10 @@ export async function getConfigRow(
       if (error.code === "PGRST116") {
         return rowNotFound(table.tableConfig, rowId);
       }
-      console.error(`[Config] Error fetching ${tableName}/${rowId}:`, error.message);
+      console.error(
+        `[Config] Error fetching ${tableName}/${rowId}:`,
+        error.message,
+      );
       return NextResponse.json(
         { error: "Database Error", message: error.message },
         { status: 500 },
@@ -266,7 +445,10 @@ export async function updateConfigRow(
     const rowBody = toRowBody(body);
     if (!rowBody) {
       return NextResponse.json(
-        { error: "Validation Error", message: "Request body must be an object" },
+        {
+          error: "Validation Error",
+          message: "Request body must be an object",
+        },
         { status: 400 },
       );
     }
@@ -279,6 +461,28 @@ export async function updateConfigRow(
         { error: "Validation Error", message: "No valid fields to update" },
         { status: 400 },
       );
+    }
+
+    // FIX B: pre-validate canonical-feeding tables. The test allows
+    // partial updates (one weather field alone is accepted because
+    // the other is unchanged in the DB), so we only reject writes
+    // that explicitly contain an invalid value — not writes that
+    // omit one side of the cadence.
+    if (CANONICAL_FEEDING_TABLES.has(tableName)) {
+      const validationErrors = validateCanonicalRow(tableName, updateData);
+      if (validationErrors.length > 0) {
+        return NextResponse.json(
+          {
+            error: "Validation Error",
+            message:
+              "Row would put the canonical state builder into a fail-closed state",
+            validationErrors: validationErrors.map(
+              (e) => `${e.field}: ${e.message}`,
+            ),
+          },
+          { status: 400 },
+        );
+      }
     }
 
     const supabase = getDbClient();
@@ -297,11 +501,20 @@ export async function updateConfigRow(
       if (error.code === "PGRST116") {
         return rowNotFound(table.tableConfig, rowId);
       }
-      console.error(`[Config] Error updating ${tableName}/${rowId}:`, error.message);
+      console.error(
+        `[Config] Error updating ${tableName}/${rowId}:`,
+        error.message,
+      );
       return NextResponse.json(
         { error: "Database Error", message: error.message },
         { status: 500 },
       );
+    }
+
+    // FIX A: invalidate the canonical state cache after a successful
+    // write to game_config_game / game_config_resources.
+    if (CANONICAL_FEEDING_TABLES.has(tableName)) {
+      invalidateCanonicalInitialStateCache();
     }
 
     await logAdminAction({
@@ -340,7 +553,10 @@ export async function deleteConfigRow(
       .eq(table.tableConfig.primaryKey, decodeURIComponent(rowId));
 
     if (error) {
-      console.error(`[Config] Error deleting ${tableName}/${rowId}:`, error.message);
+      console.error(
+        `[Config] Error deleting ${tableName}/${rowId}:`,
+        error.message,
+      );
       return NextResponse.json(
         { error: "Database Error", message: error.message },
         { status: 500 },
@@ -380,7 +596,9 @@ function applyColumnFilters<TQuery extends ColumnFilterQuery<TQuery>>(
     const value = valParts.join(":");
     if (!value) continue;
 
-    const colConfig = tableConfig.columns.find((column) => column.key === colName);
+    const colConfig = tableConfig.columns.find(
+      (column) => column.key === colName,
+    );
     if (!colConfig) continue;
 
     if (colConfig.type === "boolean") {
@@ -417,7 +635,9 @@ function pickWritableColumns(
   options: { includeRequired: boolean },
 ): Record<string, unknown> {
   const writableColumns = tableConfig.columns.filter((column) =>
-    options.includeRequired ? column.editable || column.required : column.editable,
+    options.includeRequired
+      ? column.editable || column.required
+      : column.editable,
   );
   const row: Record<string, unknown> = {};
 

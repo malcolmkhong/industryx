@@ -22,7 +22,7 @@ import type { GameState } from "@/lib/game/shared/types/types";
 
 // Mock the canonical helper BEFORE importing the module under test.
 // The canonical state is a known stub so the validator can merge prestigeState into it.
-vi.mock("@/lib/db/initialState.server", () => ({
+vi.mock("@/lib/db/infra/initialState.server", () => ({
   fetchCanonicalInitialState: vi.fn(async () => ({
     money: 1000,
     totalMoneyEarned: 0,

@@ -36,14 +36,13 @@ describe('POST /api/game/leaderboard/submit', () => {
     vi.resetModules();
     vi.doMock('@/lib/db/access', () => ({
       createServiceRoleClient: () => ({
-      // BUG-077: canonical boundary names mirror the legacy alias.
-      getDbClient: () => ({,
-      requireDbClient: () => ({ from: vi.fn() }),
-      isDbClientConfigured: vi.fn(() => true),
         auth: {
           getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: new Error('invalid_token') }),
         },
       }),
+      getDbClient: () => ({ from: vi.fn() }),
+      requireDbClient: () => ({ from: vi.fn() }),
+      isDbClientConfigured: vi.fn(() => true),
       createClient: async () => null,
       isServiceRoleConfigured: () => true,
       isSupabaseConfigured: () => true,
