@@ -73,7 +73,7 @@ export function StateRecoveryScreen({
       <Card
         className={cn(
           "w-full max-w-md",
-          "border-info/40 bg-[#111827]/80 backdrop-blur",
+          "border-info/40 bg-industrial-card/80 backdrop-blur",
           "border-l-[3px] border-l-info",
         )}
         role="alert"
@@ -92,31 +92,27 @@ export function StateRecoveryScreen({
             <GameIcon
               ui="info"
               size={28}
-              color="#60a5fa"
+              color="var(--color-info)"
               aria-label="Recovery required"
             />
           </div>
 
-          <CardTitle
-            id="state-recovery-title"
-            className="text-lg sm:text-xl"
-          >
+          <CardTitle id="state-recovery-title" className="text-lg sm:text-xl">
             We need a hand to recover your save
           </CardTitle>
           <CardDescription
             id="state-recovery-body"
             className="text-sm text-muted-label max-w-sm"
           >
-            Your saved game data is in an unexpected state. We paused
-            gameplay so nothing is overwritten.
+            Your saved game data is in an unexpected state. We paused gameplay
+            so nothing is overwritten.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="flex flex-col gap-4 text-sm leading-relaxed">
           <p className="text-foreground/90">
-            Our servers flagged this save as inconsistent or unsupported.
-            This is not a reset — your progress is preserved while we
-            investigate.
+            Our servers flagged this save as inconsistent or unsupported. This
+            is not a reset — your progress is preserved while we investigate.
           </p>
 
           <ul className="flex flex-col gap-2 text-muted-label">
@@ -124,7 +120,7 @@ export function StateRecoveryScreen({
               <GameIcon
                 ui="production"
                 size={14}
-                color="#9ca3af"
+                color="var(--color-subtle)"
                 aria-hidden="true"
                 className="mt-1 shrink-0"
               />
@@ -134,26 +130,26 @@ export function StateRecoveryScreen({
               <GameIcon
                 ui="production"
                 size={14}
-                color="#9ca3af"
+                color="var(--color-subtle)"
                 aria-hidden="true"
                 className="mt-1 shrink-0"
               />
               <span>
-                Contact our support team with the recovery reference shown
-                after you submit a ticket.
+                Contact our support team with the recovery reference shown after
+                you submit a ticket.
               </span>
             </li>
             <li className="flex items-start gap-2">
               <GameIcon
                 ui="production"
                 size={14}
-                color="#9ca3af"
+                color="var(--color-subtle)"
                 aria-hidden="true"
                 className="mt-1 shrink-0"
               />
               <span>
-                You can safely close this page; support will reach you
-                when the save is restored.
+                You can safely close this page; support will reach you when the
+                save is restored.
               </span>
             </li>
           </ul>

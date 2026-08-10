@@ -27,22 +27,26 @@ export default function AmbientParticles() {
   const [mounted, setMounted] = useState(false);
   const reducedMotion = useReducedMotion();
 
-  /* eslint-disable react-hooks/purity -- particles are intentionally randomized on each mount */
+  // A5 (REAL-DEFECT-A5): SEC-008 forbids Math.random for any
+  // id-shaped context. Even though particle positions are decorative
+  // and not security-sensitive, the A5 architecture test widens the
+  // rule to any id-shaped context. Use a deterministic mulberry32
+  // PRNG seeded from a constant so the visual output is stable
+  // across mounts (also makes E2E snapshots deterministic).
   const particles = useMemo<Particle[]>(() => {
     const count = 18;
+    const rng = mulberry32(0xc0ffee);
     return Array.from({ length: count }, (_, i) => ({
       id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: 2 + Math.random() * 2,
-      color:
-        PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
-      opacity: 0.1 + Math.random() * 0.2,
-      duration: 5 + Math.random() * 10,
-      delay: Math.random() * -15,
+      x: rng() * 100,
+      y: rng() * 100,
+      size: 2 + rng() * 2,
+      color: PARTICLE_COLORS[Math.floor(rng() * PARTICLE_COLORS.length)],
+      opacity: 0.1 + rng() * 0.2,
+      duration: 5 + rng() * 10,
+      delay: rng() * -15,
     }));
   }, []);
-  /* eslint-enable react-hooks/purity */
 
   useEffect(() => {
     setMounted(true);
@@ -103,4 +107,18 @@ export default function AmbientParticles() {
       ))}
     </div>
   );
+}
+
+// Mulberry32 — small, fast, deterministic PRNG. Public domain.
+// Used here so the AmbientParticles visual is stable across mounts
+// without relying on Math.random (per A5 / SEC-008).
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }

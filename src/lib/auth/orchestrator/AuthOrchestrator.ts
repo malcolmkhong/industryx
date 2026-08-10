@@ -262,6 +262,11 @@ export class AuthOrchestrator {
     const priorUserId = this.state.userId;
     const priorIdentity = this.state.identity;
 
+    // M7 audit fix: emit a "signed_out" telemetry event so the admin
+    // dashboard sees the user-initiated sign-out as a distinct
+    // outcome from a recovery_required or temporary_error.
+    this.emitLifecycleTelemetry("signed_out");
+
     this.dispatch({ type: "SIGN_OUT_STARTED" });
 
     // Step 1: capture previous auth user id BEFORE state mutation. The
@@ -319,12 +324,21 @@ export class AuthOrchestrator {
         ? "anonymous"
         : "authenticated"
       : "unauthenticated";
+    // M7 audit fix: emit a "signed_in" telemetry event when the user
+    // transitions from unauthenticated/anonymous to authenticated. The
+    // auth_user_changed edge case (switching between two auth users) is
+    // covered by the AUTH_USER_CHANGED event below.
+    const wasAuthed = this.state.identity === "authenticated";
+    const nowAuthed = identity === "authenticated";
     this.setState({
       identity,
       userId: session?.user?.id ?? null,
       isGuest: session?.user?.is_anonymous ?? false,
     });
     this.dispatch({ type: "AUTH_STATE_CHANGED", session });
+    if (!wasAuthed && nowAuthed) {
+      this.emitLifecycleTelemetry("signed_in");
+    }
   }
 
   // ─── Main entry point ───────────────────────────────────────────────
@@ -805,6 +819,33 @@ export class AuthOrchestrator {
       fingerprintStatus,
       stateAtEmit: this.state.status,
     };
+  }
+
+  /**
+   * M7 audit fix: fire-and-forget lifecycle telemetry for non-bootstrap
+   * outcomes (signed_out, signed_in). These never go through the
+   * bootstrap state machine so they bypass buildTelemetry().
+   */
+  private emitLifecycleTelemetry(outcome: "signed_out" | "signed_in"): void {
+    const deps = this.deps;
+    if (!deps?.emitTelemetry) return;
+    const deviceId = this.state.deviceId;
+    if (!deviceId) return;
+    try {
+      deps.emitTelemetry({
+        deviceId,
+        outcome,
+        source: null,
+        isGuest: this.state.isGuest,
+        durationMs: null,
+        fingerprintStatus: this.normalizeFingerprintStatus(
+          this.state.fingerprintStatus,
+        ),
+        stateAtEmit: this.state.status,
+      });
+    } catch (err) {
+      console.warn("[AuthOrchestrator] emitLifecycleTelemetry threw:", err);
+    }
   }
 
   private normalizeFingerprintStatus(

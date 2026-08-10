@@ -16,13 +16,15 @@ import type {
   EventEffect,
 } from "../shared/types/types";
 import type { GameConfig } from "./types/gameConfig";
+import { migrateBuildingId } from "../migration/idMigration";
 
 // ============================================
 // Mutable references — importers see updates via live bindings.
 // Initial values are EMPTY (fail-closed semantics).
 // ============================================
 
-export let BUILDING_DEFS: Record<BuildingType, BuildingDefinition> = {} as Record<BuildingType, BuildingDefinition>;
+export let BUILDING_DEFS: Record<BuildingType, BuildingDefinition> =
+  {} as Record<BuildingType, BuildingDefinition>;
 export let RESOURCE_META: Record<
   ResourceType,
   {
@@ -99,7 +101,10 @@ export let SEASONAL_EVENTS = [] as Array<{
   endDate?: string;
   isActive?: boolean;
 }>;
-export let WEATHER_DEFS: Record<WeatherType, WeatherDefinition> = {} as Record<WeatherType, WeatherDefinition>;
+export let WEATHER_DEFS: Record<WeatherType, WeatherDefinition> = {} as Record<
+  WeatherType,
+  WeatherDefinition
+>;
 export let QUEST_DEFS: Quest[] = [];
 export let TRADABLE_RESOURCE_IDS: readonly string[] = [];
 
@@ -117,12 +122,21 @@ export { TIER_INFO } from "../progression/tiers";
 // ============================================
 // Migration map: old hardcoded ID -> new Supabase ID
 // ============================================
+//
+// R-A audit fix (2026-07-18): this module previously held a
+// parallel `BUILDING_ID_MIGRATION` map and a private
+// `migrateBuildingId` function that duplicated the canonical
+// definitions in `idMigration.ts`. If one map was updated
+// without the other, runtime migration would silently disagree
+// with save-state migration. The fix re-exports the canonical
+// `BUILDING_ID_MAP` under the legacy alias so callers
+// (`buildingIdMigration.ts`, inline imports) keep working
+// without forking the map.
+//
+// Canonical owner: `src/lib/game/migration/idMigration.ts`.
 
-export const BUILDING_ID_MIGRATION: Record<string, string> = {
-  miningDrill: "ironMine", // combo extractor -> specialized single-resource
-  quarry: "sandMine", // combo extractor -> specialized single-resource
-  goldsmith: "jewelleryForge", // raw inputs -> refined inputs (refinedGold+refinedSilver)
-};
+export { BUILDING_ID_MAP as BUILDING_ID_MIGRATION } from "../migration/idMigration";
+export { migrateBuildingId } from "../migration/idMigration";
 
 // ============================================
 // Migration helper — migrate building type IDs in existing data
@@ -135,7 +149,10 @@ export function migrateBuildingDefs(): void {
   for (const [id, def] of Object.entries(BUILDING_DEFS)) {
     const newId = migrateBuildingId(id);
     if (newId !== id) {
-      migrated[newId as BuildingType] = { ...def, type: newId as BuildingDefinition["type"] };
+      migrated[newId as BuildingType] = {
+        ...def,
+        type: newId as BuildingDefinition["type"],
+      };
       migrationCount++;
     } else {
       migrated[id as BuildingType] = def;
@@ -150,14 +167,17 @@ export function migrateBuildingDefs(): void {
   }
 }
 
-function migrateBuildingId(id: string): string {
-  return BUILDING_ID_MIGRATION[id] ?? id;
-}
+// `migrateBuildingId` is re-exported from idMigration.ts above;
+// this module no longer defines its own copy. See the comment block
+// on the re-export for the audit rationale.
 
 function mergedBuildingDefs(
   partial: Partial<Record<BuildingType, BuildingDefinition>>,
 ): Record<BuildingType, BuildingDefinition> {
-  return { ...BUILDING_DEFS, ...partial } as Record<BuildingType, BuildingDefinition>;
+  return { ...BUILDING_DEFS, ...partial } as Record<
+    BuildingType,
+    BuildingDefinition
+  >;
 }
 
 // ============================================
@@ -325,7 +345,7 @@ export function updateFromSupabase(config: GameConfig): void {
       steps: ((q.steps as Array<Record<string, unknown>> | null) ?? []).map(
         (raw, idx) => ({
           id: `${q.id}-step-${idx}`,
-          description: String(raw.description ?? ''),
+          description: String(raw.description ?? ""),
           target: Number(raw.target ?? 1),
           current: Number(raw.current ?? 0),
           completed: raw.completed === true,

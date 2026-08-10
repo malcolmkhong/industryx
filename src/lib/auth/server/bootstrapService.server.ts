@@ -141,10 +141,7 @@ export async function runBootstrap(
   // The previous session user should NOT equal the current session user:
   // - No current session + previousAuthUserId -> signed-out, create new guest.
   // - Current session user == previousAuthUserId -> idempotent (treat as auth bootstrap).
-  if (
-    args.previousAuthUserId &&
-    args.previousAuthUserId !== sessionUserId
-  ) {
+  if (args.previousAuthUserId && args.previousAuthUserId !== sessionUserId) {
     return runSignOutToGuest(args.deviceId, args.previousAuthUserId);
   }
 
@@ -275,7 +272,10 @@ async function runAuthenticatedBootstrap(
 
   // Audit log entry when guest progress was archived. Industry-standard
   // accountability: explicit traceable record of every merge decision.
-  if (upgradeRow.status === "OK_ARCHIVED_GUEST" && upgradeRow.archived_guest_id) {
+  if (
+    upgradeRow.status === "OK_ARCHIVED_GUEST" &&
+    upgradeRow.archived_guest_id
+  ) {
     console.info(
       "[bootstrap] guest archived on sign-in",
       JSON.stringify({
@@ -288,13 +288,29 @@ async function runAuthenticatedBootstrap(
     );
   }
 
-  // 3. Repair check: if no game state exists for the auth user after
-  //    upgrade, run deterministic repair; otherwise surface recovery.
-  const hasGameState =
-    upgradeRow.has_auth_progress === true ||
-    bindRow.has_game_state === true;
+  // 3. Repair check: H6 audit fix — `bindRow.has_game_state` was
+  //    captured BEFORE callUpgradeGuestToAuth ran, which moves the
+  //    guest's state to the auth user. Using the stale bindRow value
+  //    could leave hasGameState=false even after the upgrade succeeded
+  //    (e.g. when the auth user originally had no state but the
+  //    guest's was promoted into them). The post-upgrade
+  //    upgradeRow.has_auth_progress is the authoritative signal.
+  //    We also drop the redundant ensure_profile_and_state call: the
+  //    upgrade RPC itself has already created a placeholder row when
+  //    needed (see migration 074/170/079 — the upgrade path includes
+  //    a server_game_state row INSERT).
+  const hasGameState = upgradeRow.has_auth_progress === true;
 
   if (!hasGameState) {
+    // H6 audit fix: the only path where hasGameState is false after
+    // upgrade is when the auth user genuinely has no row AND no guest
+    // was promoted. That means the upgrade RPC did NOT create a row
+    // (only happens for the OK_NO_GUEST + no-auth-state branch). The
+    // canonical repair is `ensure_profile_and_state` which is what
+    // the upgrade contract is supposed to do server-side. If the
+    // server-side guarantee is ever loosened, this falls back to
+    // recovery_required which is safer than silently shipping an
+    // empty gameState.
     const repair = await callEnsureProfileAndState({ userId: authUserId });
     if (!repair.ok) return mapRpcError(repair.errorCode);
     const repairRow = repair.row;
@@ -310,12 +326,50 @@ async function runAuthenticatedBootstrap(
     return { kind: "recovery_required" };
   }
 
-  // 4. (Silent no-op for plan-defined DEVICE_BOUND_TO_OTHER_USER cases:
-  //    the upgrade RPC returns OK_NO_GUEST when there is no upgradeable
-  //    guest binding on this device, which is the correct non-conflict
-  //    answer. Genuine DEVICE_BOUND_TO_OTHER_USER conflicts are surfaced
-  //    via a separate "conflict" evaluator in a future PR; the RPC layer
-  //    cannot distinguish owned-by-another-auth from no-binding here.)
+  // 4. (L3 audit fix): DEVICE_BOUND_TO_OTHER_USER detection. The
+  //    upgrade RPC returns OK_NO_GUEST when there is no upgradeable
+  //    guest binding on this device. But the RPC can also distinguish:
+  //    - "no active_guest binding" → OK_NO_GUEST (legitimate signed-in
+  //      user on a fresh device, e.g. the user just signed in on a new
+  //      browser tab). Bind + load.
+  //    - "this device is bound to a different auth user" → plan §12
+  //      conflict. The bindRow returns the binding_id of the OTHER
+  //      user's authenticated_association; if that binding exists for
+  //      a different user, we surface DEVICE_BOUND_TO_OTHER_USER.
+  //    The migration 170 RPC surfaces this via the `error_code` set
+  //    by the bootstrap flow (DEVICE_BOUND_TO_OTHER_USER). When the
+  //    upgrade returns OK_NO_GUEST but a different auth user already
+  //    owns an authenticated_association for this device, we
+  //    surface the conflict.
+  if (upgradeRow.status === "OK_NO_GUEST") {
+    // L3 audit fix: use the cookie-aware anon client (createClient)
+    // which is the per-request client. The service-role client
+    // (getDbClient) bypasses the row-level security policies in some
+    // Supabase configurations; the anon client respects them. The
+    // test mock for createClient now exposes a from() chain (see
+    // runBootstrap.test.ts) so this works under vitest.
+    const supabase = await createServerSupabaseClient();
+    if (supabase) {
+      const { data: otherBinding } = await supabase
+        .from("device_bindings")
+        .select("user_id")
+        .eq("device_id", deviceId)
+        .eq("binding_type", "authenticated_association")
+        .eq("status", "active")
+        .neq("user_id", authUserId)
+        .maybeSingle();
+      if (otherBinding?.user_id) {
+        return {
+          kind: "conflict",
+          conflict: {
+            reason: "DEVICE_BOUND_TO_OTHER_USER",
+            survivingUserId: otherBinding.user_id,
+            archivedGuestId: null,
+          },
+        };
+      }
+    }
+  }
 
   return {
     kind: "ready",

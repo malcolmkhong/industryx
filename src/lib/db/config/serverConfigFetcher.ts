@@ -16,6 +16,10 @@
 
 import { getDbClient } from "@/lib/db/access";
 import {
+  getCachedGameConfig,
+  setCachedGameConfig,
+} from "@/lib/db/infra/gameConfigCache.server";
+import {
   DEFAULT_BALANCE_SUBSET,
   type SupabaseBuilding,
   type SupabaseResource,
@@ -394,8 +398,21 @@ export interface FetchConfigResult {
  *
  * Note: behavior is intentionally equivalent to the previous
  * /api/game/config/definitions handler — refactor moves SQL surface area only.
+ *
+ * R-2 audit fix (2026-07-18): Redis cache layer is now wired in.
+ * The cache layer lives in `gameConfigCache.server.ts` and uses
+ * Vercel KV (Upstash Redis) for cross-instance consistency. On hit
+ * the function returns immediately without hitting the database;
+ * on miss it falls through to the original DB-fetch body below
+ * and writes the result back to Redis.
  */
 export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> {
+  // R-2: try Redis first. getCachedGameConfig() handles all errors
+  // internally and falls through to the DB on miss.
+  const cached = await getCachedGameConfig();
+  if (cached) {
+    return cached;
+  }
   const supabase = getDbClient();
   if (!supabase) {
     return {
@@ -586,19 +603,17 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
       description: e.description,
       type: e.type,
       duration: e.duration,
-      effects: asEffectArray(e.effects).map(
-        (raw, idx) => ({
-          id: `${e.id}-effect-${idx}`,
-          type: raw.type as
-            | "productionMultiplier"
-            | "powerMultiplier"
-            | "marketPriceMultiplier"
-            | "transportSpeed"
-            | "researchSpeed",
-          target: raw.target as string | undefined,
-          value: Number(raw.value ?? 1),
-        }),
-      ),
+      effects: asEffectArray(e.effects).map((raw, idx) => ({
+        id: `${e.id}-effect-${idx}`,
+        type: raw.type as
+          | "productionMultiplier"
+          | "powerMultiplier"
+          | "marketPriceMultiplier"
+          | "transportSpeed"
+          | "researchSpeed",
+        target: raw.target as string | undefined,
+        value: Number(raw.value ?? 1),
+      })),
       icon: e.icon,
     })),
     seasonalEvents: (seasonalRes.data ?? []).map((s) => ({
@@ -637,7 +652,9 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
     // starting_money=1000; those rows are interleaved in the unordered
     // PostgREST response and would silently override the production config.
     // The live row is the one with id='global'.
-    gameConfig: gameRes.data?.find((row) => (row as { id?: string }).id === "global") ?? {},
+    gameConfig:
+      gameRes.data?.find((row) => (row as { id?: string }).id === "global") ??
+      {},
     balance: transformClientBalance(balanceRes.data),
     balancingRules: (rulesRes.data ?? []).map((r) => ({
       id: r.id,
@@ -658,9 +675,21 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
     source: "supabase",
   };
 
-  return {
+  // R-2: write the fresh result to Redis. This is best-effort —
+  // setCachedGameConfig logs internally and the next caller will
+  // rebuild on miss.
+  const result: FetchConfigResult = {
     config,
     partialErrors: errors,
     idMigrationMap: ID_MIGRATION_MAP,
   };
+  // Populate the cache only when the result is usable (config !== null).
+  // On critical-table failure the cache stays empty so the next call
+  // retries the DB; otherwise we'd lock in a broken config for the
+  // 1-hour TTL.
+  if (result.config !== null) {
+    await setCachedGameConfig(result);
+  }
+
+  return result;
 }

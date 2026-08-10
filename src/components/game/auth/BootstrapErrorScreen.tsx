@@ -27,7 +27,13 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { GameIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -101,7 +107,7 @@ export function BootstrapErrorScreen({
       <Card
         className={cn(
           "w-full max-w-md",
-          "border-muted-label/40 bg-[#111827]/80 backdrop-blur",
+          "border-muted-label/40 bg-industrial-card/80 backdrop-blur",
         )}
         role="alert"
       >
@@ -119,7 +125,11 @@ export function BootstrapErrorScreen({
             <GameIcon
               ui={meta.iconUi}
               size={28}
-              color={meta.tone === "warning" ? "#fbbf24" : "#f87171"}
+              color={
+                meta.tone === "warning"
+                  ? "var(--color-icon-warning)"
+                  : "var(--color-danger)"
+              }
               aria-label={meta.title}
             />
           </div>
@@ -139,7 +149,11 @@ export function BootstrapErrorScreen({
             <GameIcon
               ui="production"
               size={12}
-              color={meta.tone === "warning" ? "#fbbf24" : "#fecaca"}
+              color={
+                meta.tone === "warning"
+                  ? "var(--color-icon-warning)"
+                  : "var(--color-icon-danger-subtle)"
+              }
               aria-hidden="true"
             />
             Status: retryable

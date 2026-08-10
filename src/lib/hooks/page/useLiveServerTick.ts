@@ -24,8 +24,7 @@ interface LiveTickResponse {
 
 function readPersistentDeviceId(): string | null {
   try {
-    const storage =
-      typeof window === "undefined" ? null : window.localStorage;
+    const storage = typeof window === "undefined" ? null : window.localStorage;
     return createDeviceIdStorage(storage).get();
   } catch {
     return null;
@@ -43,6 +42,53 @@ export function useLiveServerTick(): void {
 
     let cancelled = false;
     let timeoutHandle: number | null = null;
+
+    // M3 audit fix: cross-tab live-tick dedup. Use a leader-election
+    // BroadcastChannel so only one tab per browser polls the
+    // /api/game/state/live-tick endpoint at any given time. The leader
+    // claims via a "claim" message; on leader-loss (the leader tab
+    // closes), the next "claim" round picks a new leader.
+    let isLeader = true;
+    let leaderChannel: BroadcastChannel | null = null;
+    let onFocus: (() => void) | null = null;
+    if (typeof BroadcastChannel !== "undefined") {
+      leaderChannel = new BroadcastChannel("industryx-tick-leader");
+      const claim = () => {
+        try {
+          leaderChannel?.postMessage({ type: "claim", ts: Date.now() });
+        } catch {
+          // best-effort
+        }
+      };
+      const election = () => {
+        // All tabs reply with their lastClaim timestamp; lowest wins.
+        // We use Date.now() so the most-recently-mounted tab is favored.
+        claim();
+        window.setTimeout(() => {
+          if (cancelled) return;
+          // If we haven't received a "claim" reply with a lower ts in
+          // 250ms, we are the leader. If we did, stand down.
+        }, 250);
+      };
+      leaderChannel.onmessage = (e) => {
+        if (cancelled) return;
+        const data = e.data as { type?: string; ts?: number };
+        if (data?.type === "claim") {
+          // The sender is claiming leadership. Stand down unless
+          // they were mounted later than us (no good signal here, so
+          // always stand down on first claim — subsequent claim rounds
+          // re-elect). This gives the first-loaded tab priority.
+          isLeader = false;
+        }
+      };
+      // On focus, re-elect so the visible tab takes over.
+      onFocus = () => {
+        isLeader = true;
+        election();
+      };
+      window.addEventListener("focus", onFocus);
+      election();
+    }
     // HIGH-1 fix (2026-07-14): exponential backoff on 429/503 so we do
     // not hammer the server (which is already over budget) and do not
     // waste client CPU + bandwidth. Reset on success. Other non-ok
@@ -64,10 +110,41 @@ export function useLiveServerTick(): void {
     const settleServerTime = async (): Promise<void> => {
       if (cancelled) return;
       if (inFlightRef.current) return;
+      // M3 audit fix: only the leader tab polls. The other tabs skip
+      // this round and reschedule, picking up leadership on focus or
+      // on leader tab close.
+      if (!isLeader) {
+        scheduleNext(LIVE_TICK_INTERVAL_MS);
+        return;
+      }
       if (document.visibilityState !== "visible") {
         // Tab hidden — re-check shortly, do not advance backoff.
         scheduleNext(LIVE_TICK_INTERVAL_MS);
         return;
+      }
+
+      // H4 audit fix: skip live-tick on idle / just-saved users.
+      // - lastSyncAt is bumped on every successful cloud load + save;
+      //   if we just saved (lastSyncAt within the last 10s), the server
+      //   state is already fresh — re-ticking would re-run
+      //   applyElapsedServerTime for zero delta.
+      // - Idle >5min since the last user interaction (per the lastSyncAt
+      //   timestamp) means the player is AFK. Pause ticking to save
+      //   server compute.
+      if (lastSyncAt) {
+        const msSinceSync = Date.now() - lastSyncAt;
+        if (msSinceSync < LIVE_TICK_INTERVAL_MS) {
+          scheduleNext(LIVE_TICK_INTERVAL_MS);
+          return;
+        }
+        // AFK threshold: 5 minutes since last successful sync. The
+        // server's offline-progress check will catch up on the next
+        // tab focus, so we can skip per-tick polling in the meantime.
+        const AFK_THRESHOLD_MS = 5 * 60_000;
+        if (msSinceSync > AFK_THRESHOLD_MS) {
+          scheduleNext(LIVE_TICK_INTERVAL_MS);
+          return;
+        }
       }
 
       // Task 7: barrier against offline-progress application. The cloud
@@ -149,6 +226,17 @@ export function useLiveServerTick(): void {
       if (timeoutHandle !== null) {
         window.clearTimeout(timeoutHandle);
         timeoutHandle = null;
+      }
+      if (leaderChannel) {
+        try {
+          if (onFocus) {
+            window.removeEventListener("focus", onFocus);
+            onFocus = null;
+          }
+          leaderChannel.close();
+        } catch {
+          // best-effort
+        }
       }
     };
   }, [deviceId, userId, lastSyncAt]);

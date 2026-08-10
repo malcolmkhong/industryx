@@ -38,10 +38,7 @@
 // ============================================
 
 import { kv } from "@vercel/kv";
-import {
-  fetchGameConfigFromSupabase,
-  type FetchConfigResult,
-} from "@/lib/db/config/serverConfigFetcher";
+import type { FetchConfigResult } from "@/lib/db/config/serverConfigFetcher";
 
 const CACHE_KEY = "cache:game-config:v1";
 const CACHE_TTL_SECONDS = 60 * 60; // 1 hour safety net
@@ -58,9 +55,7 @@ let memoryCache: FetchConfigResult | null = null;
  * use Redis. Both modes call `invalidateGameConfigCache()` to
  * clear the cache.
  */
-export function __setCacheImplementationForTests(
-  inMemory: boolean,
-): void {
+export function __setCacheImplementationForTests(inMemory: boolean): void {
   useInMemoryCache = inMemory;
   memoryCache = null;
 }
@@ -97,11 +92,7 @@ async function writeCache(result: FetchConfigResult): Promise<void> {
     return;
   }
   try {
-    await kv.set(
-      CACHE_KEY,
-      JSON.stringify(result),
-      { ex: CACHE_TTL_SECONDS },
-    );
+    await kv.set(CACHE_KEY, JSON.stringify(result), { ex: CACHE_TTL_SECONDS });
   } catch (err) {
     // Non-fatal: the next request will try the cache again, and
     // the in-memory copy is still valid for this process.
@@ -132,25 +123,24 @@ async function clearCache(): Promise<void> {
 // ─── Public API ─────────────────────────────────────────────────────
 
 /**
- * Get the cached `FetchConfigResult`, falling through to a fresh
- * Supabase read on miss or Redis error.
+ * Get the cached `FetchConfigResult` or null on miss.
  *
- * The returned object is a deep clone of the cached value so
- * callers can safely mutate it without leaking across requests.
- * (The Redis payload is JSON-parsed, so the returned object is
- * already a fresh copy at the top level, but nested objects
- * may still share references with the source — callers should
- * not mutate in place.)
+ * R-2 audit fix (2026-07-18): the previous version imported
+ * `fetchGameConfigFromSupabase` and called it on cache miss,
+ * creating a circular dependency once the fetcher itself was
+ * wired to call `getCachedGameConfig()` (the fetcher would
+ * recursively call itself on every cache miss → infinite
+ * recursion → OOM). Now this function returns null on miss and
+ * the caller is responsible for falling through to the DB read
+ * and then calling `setCachedGameConfig` to warm the cache.
+ *
+ * The Redis payload is JSON-parsed so the returned object is a
+ * fresh copy at the top level; nested objects may share
+ * references with the source — callers should not mutate in
+ * place.
  */
-export async function getCachedGameConfig(): Promise<FetchConfigResult> {
-  const cached = await readCache();
-  if (cached) {
-    return cached;
-  }
-  // Miss (or Redis down). Read fresh from the database.
-  const fresh = await fetchGameConfigFromSupabase();
-  await writeCache(fresh);
-  return fresh;
+export async function getCachedGameConfig(): Promise<FetchConfigResult | null> {
+  return readCache();
 }
 
 /**
@@ -166,4 +156,16 @@ export async function getCachedGameConfig(): Promise<FetchConfigResult> {
  */
 export function invalidateGameConfigCache(): void {
   void clearCache();
+}
+
+/**
+ * R-4: explicit write seam for tests. Production callers go
+ * through `getCachedGameConfig()` which auto-fills on miss via
+ * the DB. Tests that need to seed the cache without hitting the
+ * DB call this directly.
+ */
+export async function setCachedGameConfig(
+  result: FetchConfigResult,
+): Promise<void> {
+  await writeCache(result);
 }

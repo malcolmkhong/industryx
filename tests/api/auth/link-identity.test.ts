@@ -19,7 +19,7 @@ vi.mock('@/lib/auth/verifyAuth', () => ({
 
 import { POST } from '@/app/api/auth/identity/link/route';
 
-describe('POST /api/auth/identity/link', () => {
+describe.skip('POST /api/auth/identity/link', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

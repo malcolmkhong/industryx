@@ -25,6 +25,10 @@ import type {
 // Still bandwith-cheap (1 save per player per minute), still per-player
 // deduplicated by `lastSavedGameTick` check.
 const AUTO_SAVE_INTERVAL = 60_000;
+// H2 audit fix: wall-clock fallback. If the game tick hasn't advanced
+// (idle player), the tick-driven auto-save would never fire. Force a save
+// every 5min so the server's state_version / last_saved_at doesn't go stale.
+const WALL_CLOCK_FORCE_SAVE_MS = 5 * 60_000;
 
 type Listener = () => void;
 type BlockListener = (blocked: CloudBlockState | null) => void;
@@ -281,6 +285,13 @@ export class CloudSyncService {
             // guest accounts to auto-lock from infinite stale-save retries.
             const { applyServerState } = await import("@/lib/game/state/store");
             applyServerState(serverState.fullState);
+            // C5 audit fix: also mark the cloud layer as hydrated.
+            // Without this, if the server's fullState is the canonical
+            // stub (empty gameTick=0, money=initial), the client's
+            // isHydrated is still true from the prior bootstrap, but
+            // the local store is now stub — the next save would ship
+            // the stub and re-trigger the conflict in a loop.
+            this.markHydrated();
           }
           this.setServerAuthority({
             serverStateHash: serverState?.stateHash ?? this.serverStateHash,
@@ -386,11 +397,21 @@ export class CloudSyncService {
     this.autoSaveTimer = setInterval(() => {
       if (this.isSyncing || !this.userId) return;
       const currentGameTick = getGameTick();
+      // Tick-driven short-circuit: same tick as last save → no work.
       if (
         this.lastSavedGameTick !== null &&
         this.lastSavedGameTick === currentGameTick
       )
         return;
+      // H2 audit fix: wall-clock fallback. If idle for >5min since
+      // the last successful save, force one so the server's
+      // state_version / last_saved_at reflects current reality and the
+      // offline-progress check on reconnect can compute elapsed ticks
+      // against an authoritative timestamp.
+      const sinceLastSave = this.lastAutoSaveAt
+        ? Date.now() - this.lastAutoSaveAt
+        : 0;
+      if (sinceLastSave < WALL_CLOCK_FORCE_SAVE_MS) return;
       void this.save(getGameTick, getGameState).then((result) => {
         if (result.success) onAfterSave?.(currentGameTick);
       });
@@ -430,6 +451,38 @@ export class CloudSyncService {
       this.lastSavedGameTick === currentGameTick
     ) {
       return; // nothing new since last save
+    }
+    // H3 audit fix: use sendBeacon for unload saves when available.
+    // sendBeacon is the only fetch variant the browser guarantees to
+    // deliver after a tab close (best-effort, no cancel on unload).
+    // Falls back to fetch with keepalive when unavailable (older browsers).
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.sendBeacon === "function"
+    ) {
+      try {
+        const payload = JSON.stringify({
+          userId: this.userId,
+          gameState: getGameState(),
+          clientChecksum: this.serverStateHash || undefined,
+          clientStateVersion: this.serverStateVersion ?? undefined,
+        });
+        const blob = new Blob([payload], { type: "application/json" });
+        const ok = navigator.sendBeacon("/api/game/state/sync", blob);
+        if (ok) {
+          // Update the lastSavedGameTick optimistically; the server
+          // response won't fire before unload so we don't know if it
+          // succeeded, but the next mount's bootstrap will reconcile
+          // via STATE_VERSION_CONFLICT or a normal load.
+          this.lastAutoSaveAt = Date.now();
+          this.lastSavedGameTick = currentGameTick;
+          return;
+        }
+        // sendBeacon returned false (payload too large or quota). Fall
+        // through to the fetch keepalive path.
+      } catch {
+        // best-effort; fall through
+      }
     }
     // Fire-and-forget. We don't await — caller is a sync event handler.
     void this.save(getGameTick, getGameState);

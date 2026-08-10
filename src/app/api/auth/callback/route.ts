@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
+import { hashIp, extractClientIp } from "@/app/api/auth/_shared/request-ip-log-helper";
 
 export async function GET(request: Request) {
+  // A7 (REAL-DEFECT-A7a): API-001 requires rate limiting on every
+  // useful route. The OAuth code-exchange endpoint is unauthenticated
+  // (the code is the only credential) and is a high-value brute-force
+  // target. Key the bucket on the client IP hash; 30/min, best-effort
+  // so legitimate users on flaky networks still recover.
+  const ipHash = hashIp(extractClientIp(request.headers));
+  const limited = await checkRateLimit(
+    ipHash,
+    RATE_LIMITS.general,
+    "/api/auth/callback",
+  );
+  if (limited) return limited;
+
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/';

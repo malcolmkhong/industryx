@@ -26,6 +26,7 @@ import { createHash } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { verifyAuth } from "@/lib/auth/verifyAuth";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import {
   runBootstrap,
   type BootstrapResult,
@@ -39,9 +40,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       fingerprintHash?: unknown;
     };
 
-    // ── 1. Validate legacy request shape ───────────────────────────────
-    const deviceId =
+    // ── 0. Rate limit (A7 / REAL-DEFECT-A7b) ─────────────────────────
+    // Key on the submitted deviceId when present so the same browser
+    // shares the bucket across re-registers. 20/min, best-effort
+    // (matches the canonical /api/auth/bootstrap profile).
+    const preDeviceId =
       typeof body.deviceId === "string" ? body.deviceId.trim() : "";
+    if (preDeviceId) {
+      const limited = await checkRateLimit(
+        preDeviceId,
+        RATE_LIMITS.bootstrap,
+        "/api/auth/device/register",
+      );
+      if (limited) return limited;
+    }
+
+    // ── 1. Validate legacy request shape ───────────────────────────────
+    const deviceId = preDeviceId;
     if (!deviceId) {
       return NextResponse.json(
         { error: "deviceId is required" },

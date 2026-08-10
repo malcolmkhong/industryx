@@ -8,6 +8,13 @@
  * loadInvestigationFullConfig) share one source of truth.
  *
  * Mirrors the structure of `initialState.server.test.ts`.
+ *
+ * R-2 (2026-07-18): the previous version of `getCachedGameConfig`
+ * auto-warmed the cache by calling `fetchGameConfigFromSupabase`
+ * on miss. That created a circular dependency once the fetcher
+ * itself was wired to call `getCachedGameConfig`. Now the cache
+ * module is read-only: callers must explicitly populate via
+ * `setCachedGameConfig`. The fetcher does this on its miss path.
  */
 
 import {
@@ -41,52 +48,44 @@ vi.mock("@vercel/kv", () => {
   };
 });
 
-// Mock the Supabase fetcher. The test doesn't care about the
-// actual SQL — just that `getCachedGameConfig` returns the
-// fetch result and caches it.
-vi.mock("@/lib/db/config/serverConfigFetcher", () => ({
-  fetchGameConfigFromSupabase: vi.fn(async () => ({
-    config: {
-      buildings: {},
-      resources: {},
-      research: [],
-      market: [],
-      weather: {},
-      workers: [],
-      transport: [],
-      automation: [],
-      prestigeBonuses: [],
-      rankThresholds: [],
-      quests: [],
-      dailyRewards: [],
-      eventTemplates: [],
-      seasonalEvents: [],
-      megaProjects: [],
-      gameConfig: {},
-      balance: {},
-      tradableResourceIds: [],
-      productionChains: [],
-      loadedAt: 0,
-      source: "supabase" as const,
-    },
-    eventSchedule: null,
-    partialErrors: [],
-    idMigrationMap: {},
-  })),
-}));
-
 import { kv } from "@vercel/kv";
-// The mock factory attaches `__fakeStore` to the module object
-// at module load time. We lazily resolve it after the mock is
-// in place — pulling the kv import at module level would happen
-// before the mock factory runs.
-let fakeStore: Map<string, string>;
-
 import {
-  __setCacheImplementationForTests,
   getCachedGameConfig,
+  setCachedGameConfig,
   invalidateGameConfigCache,
+  __setCacheImplementationForTests,
 } from "@/lib/db/infra/gameConfigCache.server";
+
+const SAMPLE_CONFIG = {
+  buildings: {},
+  resources: {},
+  research: [],
+  market: [],
+  weather: {},
+  workers: [],
+  transport: [],
+  automation: [],
+  prestigeBonuses: [],
+  rankThresholds: [],
+  quests: [],
+  dailyRewards: [],
+  megaProjects: [],
+  automationUnlocks: [],
+  game: { starting_money: 2000 } as never,
+  contracts: [],
+  transportLines: [],
+  activeEvents: [],
+  eventLog: [],
+  stats: {} as never,
+} as never;
+
+const SAMPLE_RESULT = {
+  config: SAMPLE_CONFIG,
+  partialErrors: [],
+  idMigrationMap: {},
+} as never;
+
+let fakeStore: Map<string, string>;
 
 describe("Unified game-config cache (Redis-backed)", () => {
   beforeAll(async () => {
@@ -109,7 +108,10 @@ describe("Unified game-config cache (Redis-backed)", () => {
   });
 
   it("writes the FetchConfigResult to Redis with a 1-hour TTL", async () => {
-    await getCachedGameConfig();
+    // R-2: getCachedGameConfig is now read-only. Callers must
+    // explicitly setCachedGameConfig. The fetcher does this on
+    // its miss path.
+    await setCachedGameConfig(SAMPLE_RESULT);
     expect(kv.set).toHaveBeenCalled();
     const call = (kv.set as ReturnType<typeof vi.fn>).mock.calls[0];
     // call[0] is the key, call[1] is the value, call[2] is the options
@@ -123,33 +125,20 @@ describe("Unified game-config cache (Redis-backed)", () => {
     // Pre-warm the cache with a known config. Then force a fresh
     // read. The read should return the pre-warmed value, not
     // re-build from the DB.
-    const firstRead = await getCachedGameConfig();
-    if (!firstRead.config) throw new Error("expected config on first read");
-    const knownResult = {
-      config: {
-        ...firstRead.config,
-        // The shared cache stores the full result, so we
-        // round-trip via JSON to see the override in the next
-        // read.
-        market: [{ resource: "iron", basePrice: 99 } as never],
-      },
-      eventSchedule: null,
-      partialErrors: [],
-      idMigrationMap: {},
-    };
-    fakeStore.set("cache:game-config:v1", JSON.stringify(knownResult));
+    fakeStore.set(
+      "cache:game-config:v1",
+      JSON.stringify(SAMPLE_RESULT),
+    );
     // Reset mocks so we can count the next read.
     (kv.get as ReturnType<typeof vi.fn>).mockClear();
-    // Don't invalidate — we want a cache hit, not a rebuild.
     const result = await getCachedGameConfig();
-    if (!result.config) throw new Error("expected config on second read");
-    expect(result.config.market[0].basePrice).toBe(99);
+    expect(result).not.toBeNull();
     expect(kv.get).toHaveBeenCalledWith("cache:game-config:v1");
   });
 
   it("invalidateGameConfigCache calls kv.del", async () => {
     // Populate the cache.
-    await getCachedGameConfig();
+    await setCachedGameConfig(SAMPLE_RESULT);
     (kv.del as ReturnType<typeof vi.fn>).mockClear();
     invalidateGameConfigCache();
     // Allow the void-promise to settle.
@@ -157,46 +146,44 @@ describe("Unified game-config cache (Redis-backed)", () => {
     expect(kv.del).toHaveBeenCalledWith("cache:game-config:v1");
   });
 
-  it("falls through to a DB read when Redis is down", async () => {
-    // Simulate Redis being down: every op throws.
+  it("falls through to null when Redis is down (R-2: cache is read-only)", async () => {
+    // R-2: getCachedGameConfig no longer falls through to the
+    // database. On Redis error it returns null and the caller
+    // is responsible for fetching from the DB and calling
+    // setCachedGameConfig. This breaks the previous circular
+    // dependency between the cache and the fetcher.
     (kv.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error("redis offline"),
     );
-    (kv.set as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-      new Error("redis offline"),
-    );
-    // Should still return the FetchConfigResult from the DB.
     const result = await getCachedGameConfig();
-    if (!result.config) throw new Error("expected config on Redis-down read");
-    expect(result.config.source).toBe("supabase");
+    expect(result).toBeNull();
   });
 
   it("has no time-based expiry: same call returns cached value forever", async () => {
     // The previous design had a 5-min TTL. The new design has
     // no TTL — the cache lives until invalidateGameConfigCache.
+    await setCachedGameConfig(SAMPLE_RESULT);
     const a = await getCachedGameConfig();
     const b = await getCachedGameConfig();
     const c = await getCachedGameConfig();
-    // Three sequential calls return the same underlying config.
-    if (!a.config || !b.config || !c.config) {
-      throw new Error("expected config on all reads");
-    }
-    expect(b.config.loadedAt).toBe(a.config.loadedAt);
-    expect(c.config.loadedAt).toBe(a.config.loadedAt);
+    expect(a).toEqual(b);
+    expect(b).toEqual(c);
   });
-});
 
-describe("Unified game-config cache (in-memory test mode)", () => {
-  beforeEach(() => {
+  it("works without Redis env vars when in test mode", () => {
+    // The test seam flips to in-memory mode and bypasses kv.
     __setCacheImplementationForTests(true);
-    invalidateGameConfigCache();
+    expect(() => invalidateGameConfigCache()).not.toThrow();
+    // Restore for other tests.
+    __setCacheImplementationForTests(false);
   });
 
-  it("works without Redis env vars when in test mode", async () => {
-    // The test seam is enabled — no real Redis needed. Just
-    // confirm the in-memory path returns the result.
-    const result = await getCachedGameConfig();
-    if (!result.config) throw new Error("expected config in test mode");
-    expect(result.config.source).toBe("supabase");
+  it("R-2: returns null on cold cache (callers populate explicitly)", async () => {
+    // After the R-2 refactor, getCachedGameConfig returns null
+    // on miss. Callers (i.e. serverConfigFetcher) MUST call
+    // setCachedGameConfig on the miss path to populate.
+    expect(await getCachedGameConfig()).toBeNull();
+    await setCachedGameConfig(SAMPLE_RESULT);
+    expect(await getCachedGameConfig()).not.toBeNull();
   });
 });

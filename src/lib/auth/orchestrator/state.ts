@@ -42,10 +42,38 @@ import type { BootstrapResponseBody, OrchestratorStatus } from "./types";
 export type TransitionEvent =
   | { type: "STARTUP" }
   | { type: "SESSION_RESOLVED" }
-  | { type: "RESPONSE_BOOTSTRAP_READY"; response: Extract<BootstrapResponseBody, { code: "BOOTSTRAP_READY" }> }
-  | { type: "RESPONSE_CONFLICT"; response: Extract<BootstrapResponseBody, { code: "ACCOUNT_PROGRESS_CONFLICT" | "DEVICE_BOUND_TO_OTHER_USER" }> }
-  | { type: "RESPONSE_RECOVERY"; response: Extract<BootstrapResponseBody, { code: "STATE_RECOVERY_REQUIRED" }> }
-  | { type: "RESPONSE_TEMPORARY"; response: Extract<BootstrapResponseBody, { code: "BOOTSTRAP_RATE_LIMITED" | "BOOTSTRAP_UNAVAILABLE" | "INTERNAL_BOOTSTRAP_ERROR" | "INVALID_BOOTSTRAP_REQUEST" | "INVALID_SESSION" }> }
+  | {
+      type: "RESPONSE_BOOTSTRAP_READY";
+      response: Extract<BootstrapResponseBody, { code: "BOOTSTRAP_READY" }>;
+    }
+  | {
+      type: "RESPONSE_CONFLICT";
+      response: Extract<
+        BootstrapResponseBody,
+        { code: "ACCOUNT_PROGRESS_CONFLICT" | "DEVICE_BOUND_TO_OTHER_USER" }
+      >;
+    }
+  | {
+      type: "RESPONSE_RECOVERY";
+      response: Extract<
+        BootstrapResponseBody,
+        { code: "STATE_RECOVERY_REQUIRED" }
+      >;
+    }
+  | {
+      type: "RESPONSE_TEMPORARY";
+      response: Extract<
+        BootstrapResponseBody,
+        {
+          code:
+            | "BOOTSTRAP_RATE_LIMITED"
+            | "BOOTSTRAP_UNAVAILABLE"
+            | "INTERNAL_BOOTSTRAP_ERROR"
+            | "INVALID_BOOTSTRAP_REQUEST"
+            | "INVALID_SESSION";
+        }
+      >;
+    }
   | { type: "AUTH_USER_CHANGED"; userId: string | null }
   | { type: "SIGN_OUT" }
   | { type: "SIGN_OUT_COMPLETE" }
@@ -243,9 +271,26 @@ export function responseBodyToEvent(
     case "BOOTSTRAP_RATE_LIMITED":
     case "BOOTSTRAP_UNAVAILABLE":
     case "INTERNAL_BOOTSTRAP_ERROR":
-    case "INVALID_BOOTSTRAP_REQUEST":
     case "INVALID_SESSION":
+      // Retryable: rate-limit, transient outage, or 500 from a
+      // request the user can re-fire. Retrying with the same body
+      // may succeed if the failure was transient.
       return { type: "RESPONSE_TEMPORARY", response: body };
+    case "INVALID_BOOTSTRAP_REQUEST":
+      // L4 audit fix: 400 client errors are NOT retryable. Mapping
+      // this to RESPONSE_TEMPORARY caused a retry loop in dev when
+      // a malformed body was sent. Map to RECOVERY (sticky) so the
+      // user sees a recovery screen and has to refresh / clear
+      // localStorage to recover.
+      //
+      // The orchestrator's RESPONSE_RECOVERY.response requires
+      // `code: "STATE_RECOVERY_REQUIRED"` (see types.ts:88). The
+      // raw INVALID_BOOTSTRAP_REQUEST body has a different code
+      // so we translate to the canonical recovery shape.
+      return {
+        type: "RESPONSE_RECOVERY",
+        response: { code: "STATE_RECOVERY_REQUIRED" },
+      };
     default: {
       const _exhaustive: never = body;
       void _exhaustive;

@@ -57,35 +57,31 @@ describe("time-refactor runtime smoke", () => {
     assert.equal(resolveBaseUrl(""), DEFAULT_BASE_URL);
   });
 
-  liveTest("bootstrap response includes worldClock", async () => {
+  liveTest("bootstrap response shape: code + userId + gameState", async () => {
     const { status, body } = await fetchJSON("/api/auth/bootstrap", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ deviceId: "it-time-refactor-smoke" }),
     });
-    // Bootstrap may return 200, 409, 422, or 503 depending on guest/visitor
-    // state. Any 2xx/4xx that carries a payload is OK; 5xx is not.
+    // Bootstrap may return 200, 400, 409, 422, or 503 depending on
+    // guest/visitor state. Any 2xx/4xx that carries a payload is OK;
+    // 5xx is not.
     assert.ok(status < 500, `bootstrap returned 5xx: ${status}`);
 
-    if (body?.state?.worldClock) {
-      assert.strictEqual(
-        body.state.worldClock.worldStartUtc,
-        "2026-01-01T00:00:00.000Z",
-        "worldClock.anchor should be Phase 1 spec",
+    if (status === 200) {
+      // §17 hydration guarantee: the canonical response carries a
+      // usable gameState on first paint.
+      const b = body as { code?: string; gameState?: { money?: number; quests?: unknown[] } };
+      assert.equal(b.code, "BOOTSTRAP_READY");
+      assert.ok(
+        (b.gameState?.money ?? 0) > 0,
+        "gameState.money must be > 0 (canonical starting_money=2000)",
       );
-      assert.strictEqual(
-        body.state.worldClock.ticksPerRealSecond,
-        1,
-        "worldClock.ticksPerRealSecond should be 1",
-      );
-      assert.strictEqual(
-        body.state.worldClock.displayTimezoneOffsetHours,
-        8,
-        "worldClock should display in GMT+8",
+      assert.ok(
+        (b.gameState?.quests ?? []).length > 0,
+        "gameState.quests must be non-empty on first paint",
       );
     }
-    // Some bootstrap paths may not return state (e.g. recovery required).
-    // The test passes either way as long as the response is well-formed.
   });
 
   liveTest(

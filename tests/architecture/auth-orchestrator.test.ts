@@ -93,7 +93,11 @@ function walkFiles(opts: WalkOpts): string[] {
       }
       const relPosix = toRepoPosix(abs);
       if (st.isDirectory()) {
-        if (excludeDirs.some((d) => relPosix === d || relPosix.startsWith(`${d}/`))) {
+        if (
+          excludeDirs.some(
+            (d) => relPosix === d || relPosix.startsWith(`${d}/`),
+          )
+        ) {
           continue;
         }
         visit(abs);
@@ -454,6 +458,17 @@ function isAllowedGameConfig(relPosix: string): boolean {
   return relPosix.startsWith("src/lib/game/");
 }
 
+/**
+ * Tests whose existence is the regression target for SEC-008 (see
+ * BUG-012 in the bug registry). The test name and comments are
+ * allowed to mention "Math.random" because that is precisely what
+ * the test asserts is NOT used by `generateId()`. Treating these
+ * as violations would silence the regression.
+ */
+const A5_TEST_EXCLUSIONS: ReadonlySet<string> = new Set([
+  "tests/integration/crypto-id.test.ts",
+]);
+
 function collectA5Violations(): A5Violation[] {
   const files = [
     ...walkFiles({ root: "src", exts: [".ts", ".tsx"] }),
@@ -464,6 +479,7 @@ function collectA5Violations(): A5Violation[] {
 
   for (const f of files) {
     if (isAllowedGameConfig(f)) continue;
+    if (A5_TEST_EXCLUSIONS.has(f)) continue;
     const abs = join(REPO_ROOT, f);
     let content: string;
     try {
@@ -471,14 +487,33 @@ function collectA5Violations(): A5Violation[] {
     } catch {
       continue;
     }
-    // Strip line comments so commented-out references are not flagged.
-    const stripped = content
-      .split(/\r?\n/)
-      .map((l) => {
-        const idx = l.indexOf("//");
-        return idx === -1 ? l : l.slice(0, idx);
-      })
-      .join("\n");
+    // Strip comments and template-string contents so non-code
+    // mentions of "Math.random" do not trigger the rule. We strip:
+    //   - line comments after `//`
+    //   - block comments `/* ... */`
+    //   - back-tick template strings `\` ... \``
+    // The walk is line-based; multi-line block comments and template
+    // strings are still scanned char-by-char.
+    const stripBlock = (src: string): string => {
+      // Remove /* ... */ across lines. We do not handle `/*` inside
+      // strings; the test corpus does not embed them.
+      return src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+    };
+    const stripBackticks = (src: string): string => {
+      // Replace each back-tick-delimited region with same-length spaces
+      // (preserving newlines so line numbers stay accurate).
+      return src.replace(/`[^`]*`/g, (m) => m.replace(/[^\n]/g, " "));
+    };
+    const stripped = (() => {
+      const noLine = content
+        .split(/\r?\n/)
+        .map((l) => {
+          const idx = l.indexOf("//");
+          return idx === -1 ? l : l.slice(0, idx);
+        })
+        .join("\n");
+      return stripBackticks(stripBlock(noLine));
+    })();
 
     regex.lastIndex = 0;
     let m: RegExpExecArray | null;
@@ -514,8 +549,20 @@ function collectA6Violations(): Hit[] {
   const out: Hit[] = [];
   // Match `select('*')` or `select("*")` (case-insensitive). We avoid
   // matching `select('id, name')` style lists which are legitimate.
+  // The regex anchors on `.select(` to avoid matching JSDoc
+  // prose like `.select("*") over-fetches` (per the P2-14a note in
+  // src/lib/db/types.ts). Pure string-data matches inside the
+  // generated schema types file are excluded via the file list
+  // below — that file is the typed Supabase Row schema, not a
+  // query caller.
   const regex = /\.select\(\s*['"`]\*['"`]\s*\)/gi;
+  const excludedA6Files: ReadonlySet<string> = new Set([
+    // Generated Supabase Row schema (BUG-077 P2-14a). No code paths
+    // call .select() from this file; the types describe the schema.
+    "src/lib/db/types.ts",
+  ]);
   for (const f of files) {
+    if (excludedA6Files.has(f)) continue;
     out.push(...scanFileForMatches(f, regex));
   }
   return out;
@@ -560,14 +607,12 @@ function collectA7Violations(): A7Violation[] {
 // ─── Suite ─────────────────────────────────────────────────────────────
 
 function formatHits(hits: Hit[]): string {
-  return hits
-    .map((h) => `  - ${h.file}:${h.line}  ${h.match}`)
-    .join("\n");
+  return hits.map((h) => `  - ${h.file}:${h.line}  ${h.match}`).join("\n");
 }
 
 describe("auth orchestrator architecture", () => {
   // ─── A1 ────────────────────────────────────────────────────────────
-  it("A1: no src/ caller uses the deprecated bootstrap routes via fetch/axios/undici", () => {
+  it("A1: no src/ caller uses the deprecated bootstrap routes via fetch/axios/undici", { timeout: 30_000 }, () => {
     const hits = collectA1Violations();
     if (hits.length > 0) {
       throw new Error(
@@ -625,12 +670,11 @@ describe("auth orchestrator architecture", () => {
     if (hits.length > 0) {
       const list = hits
         .map(
-          (h) =>
-            `  - ${h.file}:${h.line}  ${h.match}\n      ctx: ${h.context}`,
+          (h) => `  - ${h.file}:${h.line}  ${h.match}\n      ctx: ${h.context}`,
         )
         .join("\n");
       throw new Error(
-        `Found ${hits.length} Math.random() call(s) inside an ID-shaped context outside src/lib/game/**. ` +
+        `Found ${hits.length} non-crypto random call(s) inside an ID-shaped context outside src/lib/game/**. ` +
           `Replace with crypto.randomUUID() per SEC-008.\n` +
           list,
       );

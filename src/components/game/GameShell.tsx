@@ -304,6 +304,7 @@ export function GameShell({ children }: GameShellProps) {
           survivingUserId={authScreen.survivingUserId}
           archivedGuestId={authScreen.archivedGuestId}
           onResolve={handleBootstrapRetry}
+          onSignOutAndStartOver={signOut}
         />
       );
     }

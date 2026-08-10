@@ -101,15 +101,29 @@ function buildMockSupabase(opts: MockSupabaseOpts = {}) {
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     },
     insertCalls,
+    // BUG-077: canonical boundary surface. The route imports
+    // `getDbClient` directly from `@/lib/db/access`; expose the
+    // canonical names at the top level of the mock so the route
+    // resolves them. Legacy aliases are kept so existing tests
+    // that read them keep compiling.
+    getDbClient: () => ({ from }),
+    requireDbClient: () => ({ from }),
+    isDbClientConfigured: () => true,
     createServiceRoleClient: () => ({ from }),
     createClient: async () => ({
       auth: {
         getUser: vi.fn().mockResolvedValue({
-          data: { user: opts.sessionUserId ? { id: opts.sessionUserId } : null },
+          data: {
+            user: opts.sessionUserId ? { id: opts.sessionUserId } : null,
+          },
           error: null,
         }),
         getSession: vi.fn().mockResolvedValue({
-          data: { session: opts.sessionUserId ? { user: { id: opts.sessionUserId } } : null },
+          data: {
+            session: opts.sessionUserId
+              ? { user: { id: opts.sessionUserId } }
+              : null,
+          },
           error: null,
         }),
       },
@@ -122,18 +136,28 @@ function buildMockSupabase(opts: MockSupabaseOpts = {}) {
 type ImportedRoute = typeof import("@/app/api/telemetry/bootstrap/route");
 
 interface TelemetrySupabaseMock {
+  supabase: { from: any; rpc: any };
+  insertCalls: InsertCall[];
+  getDbClient: () => { from: any };
+  requireDbClient: () => { from: any };
+  isDbClientConfigured: () => boolean;
   createServiceRoleClient: () => { from: any } | null;
   createClient: () => Promise<{
     auth: {
-      getUser: () => Promise<{ data: { user: { id: string } | null }; error: null }>;
+      getUser: () => Promise<{
+        data: { user: { id: string } | null };
+        error: null;
+      }>;
     };
   }>;
   isSupabaseConfigured: () => boolean;
   isServiceRoleConfigured: () => boolean;
 }
 
-async function loadRouteWith(mock: TelemetrySupabaseMock): Promise<ImportedRoute> {
-  vi.doMock('@/lib/db/access', () => mock);
+async function loadRouteWith(
+  mock: TelemetrySupabaseMock,
+): Promise<ImportedRoute> {
+  vi.doMock("@/lib/db/access", () => mock);
   vi.resetModules();
   return import("@/app/api/telemetry/bootstrap/route");
 }
@@ -169,7 +193,11 @@ describe("POST /api/telemetry/bootstrap", () => {
 
     const res = await POST(req);
     expect(res.status).toBe(200);
-    const body = await readJson<{ ok?: boolean; error?: string; code?: string }>(res);
+    const body = await readJson<{
+      ok?: boolean;
+      error?: string;
+      code?: string;
+    }>(res);
     expect(body.ok).toBe(true);
     const { RATE_LIMITS } = await import("@/lib/auth/rateLimiter");
     expect(checkRateLimit).toHaveBeenCalledWith(
@@ -247,7 +275,9 @@ describe("POST /api/telemetry/bootstrap", () => {
 
   it("dedupes insert when an existing (device_id, outcome) row exists in the same minute", async () => {
     const mock = buildMockSupabase({
-      existingRows: [{ id: "existing-row", device_id: UUID_DEVICE, outcome: "ready" }],
+      existingRows: [
+        { id: "existing-row", device_id: UUID_DEVICE, outcome: "ready" },
+      ],
     });
     const { POST } = await loadRouteWith(mock);
 
@@ -296,9 +326,23 @@ describe("POST /api/telemetry/bootstrap", () => {
 
   it("returns 503 TELEMETRY_UNAVAILABLE when service-role is not configured", async () => {
     const noClientMock: TelemetrySupabaseMock = {
+      // The route reads via the canonical getDbClient() — returning
+      // null there triggers the 503 path. Legacy alias is also null
+      // for symmetry with the previous contract.
+      supabase: { from: vi.fn(), rpc: vi.fn() },
+      insertCalls: [],
+      getDbClient: () => null,
+      requireDbClient: () => {
+        throw new Error("db not configured");
+      },
+      isDbClientConfigured: () => false,
       createServiceRoleClient: () => null,
       createClient: async () => ({
-        auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+        auth: {
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: null }, error: null }),
+        },
       }),
       isSupabaseConfigured: () => true,
       isServiceRoleConfigured: () => false,

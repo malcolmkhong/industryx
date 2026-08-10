@@ -34,6 +34,11 @@
  */
 
 import { createClient } from "@/lib/db/access";
+import {
+  getCachedAdminUids,
+  setCachedAdminUids,
+  invalidateAdminUidCache,
+} from "@/lib/db/infra/adminUidCache.server";
 import type { Database } from "@/lib/db/types";
 
 // Type aliases from the generated Supabase types.
@@ -57,18 +62,26 @@ export type AdminUserForRoleUpdate = Pick<
 >;
 
 // ─────────────────────────────────────────────────────────────────
-// 60s in-memory cache for admin user IDs (preserved from auth/admin.ts)
+// Admin UID cache (Redis-backed, see adminUidCache.server.ts)
 // ─────────────────────────────────────────────────────────────────
 //
-// Single-flight pattern: when the cache is stale, only one refresh is
-// in flight at a time. Concurrent callers wait on the same promise,
-// then receive the result. This eliminates the "reassign based on
-// outdated value" race that the previous design exposed.
+// R-1 audit fix (2026-07-18): the previous per-process 60s in-memory
+// cache was kept in this module and the Redis cache module
+// (adminUidCache.server.ts) was orphaned. With multiple instances
+// behind a load balancer, an admin revocation only invalidated the
+// cache on the instance that handled the write — the other
+// instances continued accepting requests from the revoked admin
+// for up to 60 seconds.
+//
+// We now use Redis as the cross-instance source of truth and keep a
+// per-process `inflightRefresh` Promise for single-flight dedup
+// within a single instance. The cache content lives in Redis under
+// `cache:admin-uids:v1` with a 1-hour safety-net TTL. Writes are
+// invalidated via `clearAdminCache()` (called by admin write paths)
+// which calls Redis DEL. On Redis error the code falls through to a
+// direct DB read — Redis is a cache, not a source of truth.
 
-let adminCache: Set<string> = new Set();
-let cacheLoadedAt = 0;
 let inflightRefresh: Promise<Set<string>> | null = null;
-const CACHE_TTL_MS = 60_000; // 1 minute
 
 function getAdminUidsFromEnv(): string[] {
   return (process.env.ADMIN_UIDS || "")
@@ -86,14 +99,30 @@ export function isAdminUserIdInEnv(userId: string): boolean {
 }
 
 /**
- * Refresh the cache once. Returns the resulting Set, or an env-var
- * fallback Set on query failure. Concurrent callers share the same
- * in-flight promise.
+ * Refresh the cache once. Reads from Redis first; on miss/error,
+ * falls through to the database and writes the result to Redis.
+ * Concurrent callers share the same in-flight promise (single-flight).
+ *
+ * Returns the resulting Set, or an env-var fallback Set on query
+ * failure. Redis errors are logged inside `adminUidCache.server.ts`
+ * and return null from `getCachedAdminUids()`, which signals the
+ * caller to refresh from DB.
  */
 async function refreshAdminCache(): Promise<Set<string>> {
-  if (inflightRefresh) return inflightRefresh;
-  inflightRefresh = (async () => {
+  if (inflightRefresh) return await inflightRefresh;
+  // Capture the in-flight promise in a local variable. The
+  // IIFE's `finally` block clears the module-level
+  // `inflightRefresh` reference, so reading it AFTER `await`
+  // would return `null`. Capturing the local copy preserves the
+  // resolved value for the explicit `await` + `return`.
+  const promise = (async () => {
     try {
+      // 1. Try Redis first (R-1: cross-instance consistency).
+      const cached = await getCachedAdminUids();
+      if (cached !== null && cached.size > 0) {
+        return cached;
+      }
+      // 2. Miss (or Redis down). Read fresh from the database.
       const supabase = await createClient();
       const { data, error } = await supabase
         .from("admin_users")
@@ -106,8 +135,9 @@ async function refreshAdminCache(): Promise<Set<string>> {
         return new Set(getAdminUidsFromEnv());
       }
       const fresh = new Set((data ?? []).map((r) => r.user_id));
-      adminCache = fresh;
-      cacheLoadedAt = Date.now();
+      // 3. Populate Redis for the next caller on every instance.
+      // Best-effort: failure is logged inside setCachedAdminUids.
+      await setCachedAdminUids(fresh);
       return fresh;
     } catch (err) {
       console.warn(
@@ -119,22 +149,32 @@ async function refreshAdminCache(): Promise<Set<string>> {
       inflightRefresh = null;
     }
   })();
-  return inflightRefresh;
+  inflightRefresh = promise;
+  // Explicit `await` satisfies ESLint `return-await` rule. The
+  // IIFE never rejects (the inner try/catch always returns a
+  // fallback Set) so this is functionally equivalent to
+  // `return inflightRefresh`, but the await makes the contract
+  // explicit and future-proofs against a throw being added to
+  // the IIFE body.
+  return await promise;
 }
 
 /**
- * Authoritative async admin check. Caches the admin user IDs from
- * `admin_users` table for 60s. Falls back to ADMIN_UIDS env var on error.
+ * Authoritative async admin check. Returns the Set of admin user
+ * IDs currently known (cache contents). Callers should check
+ * `set.has(userId)` to test membership.
  *
- * Returns the Set of admin user IDs currently known (cache contents).
- * Callers should check `set.has(userId)` to test membership.
+ * R-1: the cache is now Redis-backed (`cache:admin-uids:v1`).
+ * Single-flight dedup is per-process via `inflightRefresh`.
  */
 export async function getAdminUserIdsFromDb(): Promise<Set<string>> {
-  // Cache hit (within TTL)
-  if (Date.now() - cacheLoadedAt < CACHE_TTL_MS && adminCache.size > 0) {
-    return adminCache;
+  // 1. Try Redis (cross-instance cache hit). If a populated Set
+  //    comes back we return it directly; no DB roundtrip.
+  const cached = await getCachedAdminUids();
+  if (cached !== null && cached.size > 0) {
+    return cached;
   }
-  // Single-flight refresh
+  // 2. Miss / Redis-down → single-flight refresh.
   return refreshAdminCache();
 }
 
@@ -143,28 +183,25 @@ export async function getAdminUserIdsFromDb(): Promise<Set<string>> {
  * whether the userId is in the admin set.
  */
 export async function isAdminUserIdInDb(userId: string): Promise<boolean> {
-  // Cache hit (within TTL)
-  if (Date.now() - cacheLoadedAt < CACHE_TTL_MS) {
-    if (adminCache.has(userId)) return true;
-    // If we have a populated cache, a miss is authoritative
-    if (adminCache.size > 0 || cacheLoadedAt > 0) return false;
+  // 1. Try Redis.
+  const cached = await getCachedAdminUids();
+  if (cached !== null && cached.size > 0) {
+    return cached.has(userId);
   }
-
-  // Cache miss — refresh and re-check
+  // 2. Cache miss — refresh and re-check.
   const refreshed = await getAdminUserIdsFromDb();
   return refreshed.has(userId);
 }
 
 /**
- * Clear the in-memory admin cache. Called by routes that mutate
- * admin_users so subsequent reads see fresh data.
+ * Clear the admin UID cache on all instances. Called by routes
+ * that mutate admin_users so subsequent reads see fresh data.
  *
- * Also cancels any in-flight refresh so the next read triggers a
- * fresh query instead of sharing the now-stale promise.
+ * R-1: now deletes the Redis key (cross-instance) AND cancels the
+ * in-flight single-flight refresh for the current process.
  */
 export function clearAdminCache(): void {
-  adminCache = new Set();
-  cacheLoadedAt = 0;
+  invalidateAdminUidCache();
   inflightRefresh = null;
 }
 

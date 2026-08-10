@@ -55,8 +55,14 @@ liveDescribe("Supabase Connectivity", () => {
 
   // ── Test 2: Anonymous sign-in status ──
 
-  it("reports anonymous sign-in status", async () => {
-    // This is the CRITICAL test — anonymous must be enabled for the auth flow
+  it("anonymous signup endpoint is reachable (legacy path; not used by current auth)", async () => {
+    // Note: per AUTH_ORCHESTRATOR_REDESIGN_PLAN §3, the production
+    // auth flow no longer calls supabase.auth.signInAnonymously().
+    // Anon users are now created server-side via the
+    // bootstrap_guest RPC (migration 074). This test remains as a
+    // connectivity smoke — it verifies the Supabase auth endpoint
+    // is reachable, but no longer asserts the anon provider must
+    // be enabled for production auth to work.
     const r = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
       method: "POST",
       headers: supabaseHeaders(),
@@ -70,54 +76,18 @@ liveDescribe("Supabase Connectivity", () => {
 
     const body = await r.json().catch(() => ({}));
 
-    if (body.error_code === "anonymous_provider_disabled") {
-      // PRODUCTION CONFIG ISSUE: anonymous sign-ins are disabled in this Supabase project.
-      // This is documented as a known misconfiguration. The test does NOT fail here
-      // so the CI suite stays green; the warning is loud enough that the issue
-      // is visible in test output.
-      // FIX: Enable anonymous sign-ins in Supabase Dashboard → Authentication → Providers → Anonymous.
-      console.warn(
-        "  ⚠️  PRODUCTION CONFIG ISSUE: Anonymous sign-ins are DISABLED.",
-      );
-      console.warn(
-        "  AuthProvider relies on signInAnonymously() to create guest sessions.",
-      );
-      console.warn(
-        "  Without this, the auth flow is broken (login prompt never opens for guests).",
-      );
-      console.warn(
-        "  FIX: Supabase Dashboard → Authentication → Providers → Anonymous → Enable.",
-      );
-      // Accept either 422 (newer Supabase versions) or 401 (older
-      // versions or different auth flows). Both indicate the API
-      // responded correctly with an error — the test passes as long
-      // as the response is non-5xx.
-      assert.ok(
-        r.status === 422 || r.status === 401,
-        `Expected 401/422 for disabled-anon, got ${r.status}`,
-      );
-      return;
-    }
-
-    // If anonymous is enabled, we expect a 200 or 422 (invalid email).
-    // Some Supabase projects / API versions return 401 for empty creds
-    // without a structured error_code; treat that as anon-disabled
-    // rather than a hard failure (the connectivity check is the goal).
-    if (r.status === 401) {
-      console.warn(
-        "  ⚠️  signInAnonymously returned 401 without error_code; treating as anon-disabled.",
-      );
-      assert.ok(r.status < 500, `Unexpected 5xx: ${r.status}`);
-      return;
-    }
-
-    // If anonymous is enabled, we expect a 200 or 422 (invalid email)
+    // Accept any non-5xx response — the connectivity check is the goal.
     assert.ok(
-      r.status === 200 || r.status === 422,
-      `Unexpected status: ${r.status}`,
+      r.status < 500,
+      `Supabase auth signup returned ${r.status}: ${JSON.stringify(body).slice(0, 200)}`,
     );
-    console.log("  ✅ Anonymous sign-in is ENABLED");
-    console.log("  Response:", JSON.stringify(body, null, 2).slice(0, 300));
+
+    if (body.error_code === "anonymous_provider_disabled") {
+      // Informational only — anon is no longer a production path.
+      console.log(
+        "  ℹ️  Supabase anon provider is disabled (expected — plan §3 uses server-side RPC).",
+      );
+    }
   });
 
   // ── Test 3: Auth providers ──

@@ -148,7 +148,7 @@ function ProgressBar() {
       <div
         className={cn(
           "h-full w-1/3 rounded-full",
-          "bg-gradient-to-r from-brand/70 to-success/70",
+          "bg-linear-to-r from-brand/70 to-success/70",
           "loading-progress-bar",
         )}
       />

@@ -114,6 +114,59 @@ export async function GET(request: Request) {
     validationRisk: "none",
   });
 
+  // C7 audit fix: support a `?fields=summary` query that skips the full
+  // ~200KB fullState payload. Callers that only need the denormalized
+  // columns (e.g. for the /admin/players table) get a 1KB response.
+  // Default remains full payload for backward compat — the existing
+  // CloudSyncService.load() path needs the full state.
+  const fields = (searchParams.get("fields") ?? "full").toLowerCase();
+  if (fields === "summary") {
+    return NextResponse.json({
+      data: {
+        money: data.money,
+        totalMoneyEarned: data.total_money_earned,
+        researchPoints: data.research_points,
+        buildingsCount: data.buildings_count,
+        gameTick: data.game_tick,
+        gameSpeed: data.game_speed,
+        stateHash: data.state_hash,
+        stateVersion: data.state_version,
+        lastTickAt: data.last_tick_at,
+        lastSavedAt: data.last_saved_at,
+        cheatFlagCount: data.cheat_flag_count,
+      },
+      isNew: false,
+    });
+  }
+
+  // C7 audit fix: cap the full state payload. A runaway DB row with
+  // unbounded growth (e.g. a bug that writes event log into full_state)
+  // would otherwise be exfiltratable at 20/min × 200KB.
+  const payloadJson = JSON.stringify(completeFullState);
+  const MAX_FULL_STATE_BYTES = 1_048_576; // 1 MiB
+  if (payloadJson.length > MAX_FULL_STATE_BYTES) {
+    console.warn(
+      `[GameStateAPI] user ${auth.userId} fullState is ${payloadJson.length} bytes — exceeds ${MAX_FULL_STATE_BYTES}; returning summary only`,
+    );
+    return NextResponse.json({
+      data: {
+        money: data.money,
+        totalMoneyEarned: data.total_money_earned,
+        researchPoints: data.research_points,
+        buildingsCount: data.buildings_count,
+        gameTick: data.game_tick,
+        gameSpeed: data.game_speed,
+        stateHash: data.state_hash,
+        stateVersion: data.state_version,
+        lastTickAt: data.last_tick_at,
+        lastSavedAt: data.last_saved_at,
+        cheatFlagCount: data.cheat_flag_count,
+        oversize: true,
+      },
+      isNew: false,
+    });
+  }
+
   return NextResponse.json({
     data: {
       fullState: completeFullState,

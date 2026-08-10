@@ -82,27 +82,24 @@ const VARIANT_META: Record<FingerprintNoticeStatus, VariantMeta> = {
     label: "Fingerprint active",
     detail: "Device signature captured — recovery is enabled.",
     iconUi: "production",
-    iconColor: "#34d399",
-    badgeClassName:
-      "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+    iconColor: "var(--color-icon-success-bright)",
+    badgeClassName: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
   },
   unavailable: {
     label: "Fingerprint unavailable",
     detail:
       "Browser blocked fingerprinting. Progress is saved server-side, but device recovery is limited.",
     iconUi: "info",
-    iconColor: "#94a3b8",
-    badgeClassName:
-      "bg-slate-500/10 text-slate-300 border-slate-500/30",
+    iconColor: "var(--color-muted-label)",
+    badgeClassName: "bg-slate-500/10 text-slate-300 border-slate-500/30",
   },
   timeout: {
     label: "Fingerprint timed out",
     detail:
       "Browser fingerprinting was slow. We continued bootstrap without it. Try again later from settings.",
     iconUi: "production",
-    iconColor: "#fbbf24",
-    badgeClassName:
-      "bg-amber-500/10 text-amber-300 border-amber-500/30",
+    iconColor: "var(--color-icon-warning)",
+    badgeClassName: "bg-amber-500/10 text-amber-300 border-amber-500/30",
   },
 };
 

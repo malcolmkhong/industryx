@@ -20,6 +20,7 @@
 import { createHash } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import {
   runBootstrap,
   type BootstrapResult,
@@ -49,9 +50,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       fingerprint?: unknown;
     };
 
-    // ── 1. Validate legacy request shape ───────────────────────────────
-    const deviceId =
+    // ── 0. Rate limit (A7 / REAL-DEFECT-A7c) ─────────────────────────
+    // Key on the submitted deviceId; 20/min, best-effort (same
+    // profile as the canonical /api/auth/bootstrap endpoint).
+    const preDeviceId =
       typeof body.deviceId === "string" ? body.deviceId.trim() : "";
+    if (preDeviceId) {
+      const limited = await checkRateLimit(
+        preDeviceId,
+        RATE_LIMITS.bootstrap,
+        "/api/auth/guest/quickstart",
+      );
+      if (limited) return limited;
+    }
+
+    // ── 1. Validate legacy request shape ───────────────────────────────
+    const deviceId = preDeviceId;
     if (!deviceId) {
       return NextResponse.json(
         { error: "deviceId is required" },
@@ -92,10 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // ── 3. Build the legacy initialState shape ────────────────────────
     const stateRow = await loadServerGameStateLite(ready.userId);
     if (!stateRow) {
-      return NextResponse.json(
-        { error: "state_load_failed" },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: "state_load_failed" }, { status: 500 });
     }
     const initialState = await buildCompleteFullStateForServerRow(stateRow);
 
@@ -145,10 +156,7 @@ function mapBootstrapSourceToLegacy(source: string): LegacySource {
 function mapBootstrapErrorToLegacy(result: BootstrapResult): NextResponse {
   switch (result.kind) {
     case "invalid_request":
-      return NextResponse.json(
-        { error: result.reason },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: result.reason }, { status: 400 });
     case "conflict":
       // Legacy had no conflict path; collapse to a generic 500-equivalent.
       return NextResponse.json(
@@ -157,16 +165,10 @@ function mapBootstrapErrorToLegacy(result: BootstrapResult): NextResponse {
       );
     case "recovery_required":
       // Legacy never surfaced 422. Closest semantic match is a state failure.
-      return NextResponse.json(
-        { error: "state_load_failed" },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: "state_load_failed" }, { status: 500 });
     case "unavailable":
       if (result.reason === "rate_limited") {
-        return NextResponse.json(
-          { error: "rate_limited" },
-          { status: 429 },
-        );
+        return NextResponse.json({ error: "rate_limited" }, { status: 429 });
       }
       return NextResponse.json(
         { error: "Service not configured" },

@@ -60,6 +60,13 @@ export interface BootstrapConflictScreenProps {
   archivedGuestId?: string | null;
   /** Primary CTA — controlled server continuation / sign-out retry. */
   onResolve: () => void;
+  /** R-A audit fix 2026-07-18: M6 secondary CTA — sign out and start
+   * over as a guest. Optional because the conflict surface may be
+   * shown in a context where sign-out is not yet safe (e.g. the
+   * OAuth callback still in flight). When omitted, the secondary
+   * CTA is hidden. GameShell.tsx wires this to its `signOut` action.
+   */
+  onSignOutAndStartOver?: () => void | Promise<void>;
   /** Optional CTA label override (AuthProvider may localize). */
   resolveLabel?: string;
   /** Optional layout override class names. */
@@ -77,8 +84,7 @@ interface ReasonMeta {
 const REASON_META: Record<BootstrapConflictReason, ReasonMeta> = {
   DEVICE_BOUND_TO_OTHER_USER: {
     title: "Device already in use",
-    headline:
-      "This browser is bound to a different account.",
+    headline: "This browser is bound to a different account.",
     body:
       "We detected an existing device binding that does not match the " +
       "account you are trying to use. To protect ownership, IndustriaX " +
@@ -92,8 +98,7 @@ const REASON_META: Record<BootstrapConflictReason, ReasonMeta> = {
   },
   ACCOUNT_PROGRESS_CONFLICT: {
     title: "Account progress conflict",
-    headline:
-      "Your account and this device already have saved progress.",
+    headline: "Your account and this device already have saved progress.",
     body:
       "Your authenticated account and the active guest binding on this " +
       "device both contain gameplay progress. IndustriaX never auto-merges " +
@@ -124,6 +129,7 @@ export function BootstrapConflictScreen({
   survivingUserId = null,
   archivedGuestId = null,
   onResolve,
+  onSignOutAndStartOver,
   resolveLabel,
   className,
 }: BootstrapConflictScreenProps) {
@@ -147,7 +153,7 @@ export function BootstrapConflictScreen({
       <Card
         className={cn(
           "w-full max-w-lg",
-          "border-warning/40 bg-[#111827]/80 backdrop-blur",
+          "border-warning/40 bg-industrial-card/80 backdrop-blur",
           "border-l-[3px] border-l-warning",
         )}
         role="alertdialog"
@@ -166,7 +172,7 @@ export function BootstrapConflictScreen({
             <GameIcon
               ui="info"
               size={28}
-              color="#fbbf24"
+              color="var(--color-icon-warning)"
               aria-label="Conflict warning"
             />
           </div>
@@ -196,7 +202,7 @@ export function BootstrapConflictScreen({
                 <GameIcon
                   ui="production"
                   size={14}
-                  color="#9ca3af"
+                  color="var(--color-subtle)"
                   aria-hidden="true"
                   className="mt-1 shrink-0"
                 />
@@ -263,6 +269,18 @@ export function BootstrapConflictScreen({
             <GameIcon ui="help" size={14} aria-hidden="true" />
             Contact support
           </Button>
+          {onSignOutAndStartOver && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="default"
+              onClick={() => void onSignOutAndStartOver()}
+              className="w-full sm:w-auto"
+              data-testid="bootstrap-conflict-sign-out"
+            >
+              Sign out and start over
+            </Button>
+          )}
           <Button
             type="button"
             variant="default"

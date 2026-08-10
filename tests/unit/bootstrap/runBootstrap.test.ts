@@ -42,22 +42,67 @@ function rpcSet(fnName: string, rows: unknown[] | null) {
 }
 
 vi.mock("@/lib/db/access", () => {
-  return {
-    createServiceRoleClient: () => ({
-    // BUG-077: canonical boundary names mirror the legacy alias.
-    getDbClient: () => ({,
-    requireDbClient: () => ({ from: vi.fn() }),
-    isDbClientConfigured: vi.fn(() => true),
-      rpc: (fn: string, args?: unknown) => {
-        rpcMock.calls.push({ fn, args });
-        rpcMock.impl?.(fn, args);
-        const rows = rpcMock.rows.get(fn);
-        if (rows === undefined) {
-          return Promise.resolve({ data: null, error: null });
-        }
-        return Promise.resolve({ data: rows, error: null });
-      },
+  // The production code imports `getDbClient` directly from
+  // `@/lib/db/access` (canonical BUG-077 surface). The mock must
+  // expose canonical names at the top level — not nested under
+  // `createServiceRoleClient` (the legacy alias). Test-side:
+  // every test interacts only with `getDbClient` / `createClient`
+  // / `isSupabaseConfigured` / `isDbClientConfigured`. We attach
+  // an `rpc` method to the object returned by `getDbClient` so
+  // bootstrapRpcs.server.ts#callRpc can dispatch.
+  const rpc = (fn: string, args?: unknown) => {
+    rpcMock.calls.push({ fn, args });
+    rpcMock.impl?.(fn, args);
+    const rows = rpcMock.rows.get(fn);
+    if (rows === undefined) {
+      // H6 audit fix: the H6 fix (use upgradeRow.has_auth_progress
+      // instead of bindRow.has_game_state) makes the
+      // `if (!hasGameState)` branch reachable in more tests. Provide
+      // a sensible default for ensure_profile_and_state so tests that
+      // didn't pre-register the RPC don't get a spurious
+      // INTERNAL_BOOTSTRAP_ERROR. Tests that explicitly want the
+      // "no rows" failure can still call `rpcSet("ensure_profile_and_state", null)`.
+      if (fn === "ensure_profile_and_state") {
+        return Promise.resolve({
+          data: [
+            {
+              status: "OK",
+              error_code: null,
+              profile_created: false,
+              state_created: false,
+              needs_recovery: false,
+            },
+          ],
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    }
+    return Promise.resolve({ data: rows, error: null });
+  };
+  // L3 audit fix: support the post-audit device_bindings lookup in
+  // runAuthenticatedBootstrap (DEVICE_BOUND_TO_OTHER_USER detection).
+  // The mock's .from() returns null — production code treats null as
+  // "no other user owns this device" (no conflict), which matches the
+  // existing test contract for OK_NO_GUEST cases.
+  const fromTable = () => ({
+    select: () => ({
+      eq: () => ({
+        eq: () => ({
+          eq: () => ({
+            neq: () => ({
+              maybeSingle: () => Promise.resolve({ data: null, error: null }),
+            }),
+          }),
+        }),
+      }),
     }),
+  });
+  const dbClient = { rpc, from: fromTable };
+  return {
+    getDbClient: () => dbClient,
+    requireDbClient: () => dbClient,
+    isDbClientConfigured: () => true,
     createClient: async () => ({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -75,9 +120,15 @@ vi.mock("@/lib/db/access", () => {
           error: null,
         }),
       },
+      // L3 audit fix: support the post-audit device_bindings lookup
+      // when runAuthenticatedBootstrap is called synchronously via
+      // createServerSupabaseClient(). The mock's .from() returns null
+      // — production code treats null as "no other user owns this
+      // device" (no conflict), which matches the existing test
+      // contract for OK_NO_GUEST cases.
+      from: fromTable,
     }),
     isSupabaseConfigured: () => true,
-    isServiceRoleConfigured: () => true,
   };
 });
 
@@ -107,8 +158,8 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 vi.mock("@/lib/db/game/serverGameState", () => ({
-  loadServerGameStateLite: vi.fn(async (userId: string) =>
-    stateRows.get(userId) ?? null,
+  loadServerGameStateLite: vi.fn(
+    async (userId: string) => stateRows.get(userId) ?? null,
   ),
   buildCompleteFullStateForServerRow: vi.fn(
     async (row: Record<string, unknown>) => ({
@@ -152,7 +203,13 @@ async function loadRunBootstrap() {
 }
 
 interface BootstrapResultTypes {
-  kind: "ready" | "conflict" | "recovery_required" | "invalid_request" | "unavailable" | "internal_error";
+  kind:
+    | "ready"
+    | "conflict"
+    | "recovery_required"
+    | "invalid_request"
+    | "unavailable"
+    | "internal_error";
   ready?: {
     userId: string;
     bindingId: string;
@@ -278,11 +335,16 @@ describe("bootstrap/runBootstrap — business logic", () => {
         resources: { iron: 250, copper: 175 },
         workers: [{ id: "w-1", type: "engineer" }],
       });
-      rpcSet("bootstrap_authenticated", canonicalAuthBootstrapRow(authUserId, "bind-1"));
+      rpcSet(
+        "bootstrap_authenticated",
+        canonicalAuthBootstrapRow(authUserId, "bind-1"),
+      );
       rpcSet("upgrade_guest_to_auth", okNoGuestUpgradeRow(authUserId));
 
       const { runBootstrap } = await loadRunBootstrap();
-      const r = (await runBootstrap({ deviceId: "dev-1" })) as BootstrapResultTypes;
+      const r = (await runBootstrap({
+        deviceId: "dev-1",
+      })) as BootstrapResultTypes;
       expect(r.kind).toBe("ready");
       expect(r.ready?.userId).toBe(authUserId);
       expect(r.ready?.isGuest).toBe(false);
@@ -298,8 +360,12 @@ describe("bootstrap/runBootstrap — business logic", () => {
       expect(r.ready?.gameState.stateVersion).toBe(7);
       const buildings = r.ready?.gameState.buildings as unknown[];
       expect(buildings).toHaveLength(2);
-      const completedResearch = r.ready?.gameState.completedResearch as string[];
-      expect(completedResearch).toEqual(["basicProcessing", "advancedLogistics"]);
+      const completedResearch = r.ready?.gameState
+        .completedResearch as string[];
+      expect(completedResearch).toEqual([
+        "basicProcessing",
+        "advancedLogistics",
+      ]);
       const resources = r.ready?.gameState.resources as Record<string, number>;
       expect(resources).toEqual({ iron: 250, copper: 175 });
 
@@ -312,13 +378,24 @@ describe("bootstrap/runBootstrap — business logic", () => {
     it("is deterministic — repeat call produces identical values", async () => {
       const authUserId = "11111111-1111-4111-8111-111111111111";
       setSessionUser(authUserId);
-      seedStateRow(authUserId, { money: 3333, game_tick: 77, state_version: 4 });
-      rpcSet("bootstrap_authenticated", canonicalAuthBootstrapRow(authUserId, "bind"));
+      seedStateRow(authUserId, {
+        money: 3333,
+        game_tick: 77,
+        state_version: 4,
+      });
+      rpcSet(
+        "bootstrap_authenticated",
+        canonicalAuthBootstrapRow(authUserId, "bind"),
+      );
       rpcSet("upgrade_guest_to_auth", okNoGuestUpgradeRow(authUserId));
 
       const { runBootstrap } = await loadRunBootstrap();
-      const r1 = (await runBootstrap({ deviceId: "dev-x" })) as BootstrapResultTypes;
-      const r2 = (await runBootstrap({ deviceId: "dev-x" })) as BootstrapResultTypes;
+      const r1 = (await runBootstrap({
+        deviceId: "dev-x",
+      })) as BootstrapResultTypes;
+      const r2 = (await runBootstrap({
+        deviceId: "dev-x",
+      })) as BootstrapResultTypes;
       expect(r1.ready?.gameState.money).toBe(r2.ready?.gameState.money);
       expect(r1.ready?.gameState.gameTick).toBe(r2.ready?.gameState.gameTick);
     });
@@ -354,7 +431,9 @@ describe("bootstrap/runBootstrap — business logic", () => {
       });
 
       const { runBootstrap } = await loadRunBootstrap();
-      const r = (await runBootstrap({ deviceId: "dev-fresh" })) as BootstrapResultTypes;
+      const r = (await runBootstrap({
+        deviceId: "dev-fresh",
+      })) as BootstrapResultTypes;
       expect(r.kind).toBe("ready");
       expect(r.ready?.source).toBe("fresh");
       expect(r.ready?.userId).toBe(newGuestId);
@@ -392,7 +471,9 @@ describe("bootstrap/runBootstrap — business logic", () => {
       });
 
       const { runBootstrap } = await loadRunBootstrap();
-      const r = (await runBootstrap({ deviceId: "dev-legacy" })) as BootstrapResultTypes;
+      const r = (await runBootstrap({
+        deviceId: "dev-legacy",
+      })) as BootstrapResultTypes;
       expect(r.kind).toBe("ready");
       // Because the mock for buildCompleteFullStateForServerRow just copies
       // row values, this assertion verifies our mock passes them through;
@@ -425,7 +506,10 @@ describe("bootstrap/runBootstrap — business logic", () => {
         completed_research: ["basicProcessing"],
       });
 
-      rpcSet("bootstrap_authenticated", canonicalAuthBootstrapRow(authUserId, "bind-upgrade"));
+      rpcSet(
+        "bootstrap_authenticated",
+        canonicalAuthBootstrapRow(authUserId, "bind-upgrade"),
+      );
       rpcSet("upgrade_guest_to_auth", [
         {
           status: "OK_ARCHIVED_GUEST",
@@ -441,7 +525,9 @@ describe("bootstrap/runBootstrap — business logic", () => {
       ]);
 
       const { runBootstrap } = await loadRunBootstrap();
-      const r = (await runBootstrap({ deviceId: "dev-upgrade" })) as BootstrapResultTypes;
+      const r = (await runBootstrap({
+        deviceId: "dev-upgrade",
+      })) as BootstrapResultTypes;
       expect(r.kind).toBe("ready");
       expect(r.ready?.userId).toBe(authUserId);
       expect(r.ready?.archivedGuestId).toBe(archivedGuestId);
@@ -457,12 +543,19 @@ describe("bootstrap/runBootstrap — business logic", () => {
       const authUserId = "11111111-1111-4111-8111-111111111111";
       setSessionUser(authUserId);
       seedStateRow(authUserId, { money: 4200, state_version: 4 });
-      rpcSet("bootstrap_authenticated", canonicalAuthBootstrapRow(authUserId, "bind-1"));
+      rpcSet(
+        "bootstrap_authenticated",
+        canonicalAuthBootstrapRow(authUserId, "bind-1"),
+      );
       rpcSet("upgrade_guest_to_auth", okNoGuestUpgradeRow(authUserId));
 
       const { runBootstrap } = await loadRunBootstrap();
-      const r1 = (await runBootstrap({ deviceId: "dev-1" })) as BootstrapResultTypes;
-      const r2 = (await runBootstrap({ deviceId: "dev-1" })) as BootstrapResultTypes;
+      const r1 = (await runBootstrap({
+        deviceId: "dev-1",
+      })) as BootstrapResultTypes;
+      const r2 = (await runBootstrap({
+        deviceId: "dev-1",
+      })) as BootstrapResultTypes;
 
       expect(r1.kind).toBe("ready");
       expect(r2.kind).toBe("ready");
@@ -484,7 +577,10 @@ describe("bootstrap/runBootstrap — business logic", () => {
       const authUserId = "33333333-3333-4333-8333-333333333333";
       const archivedGuestId = "44444444-4444-4444-8444-444444444444";
       setSessionUser(authUserId);
-      rpcSet("bootstrap_authenticated", canonicalAuthBootstrapRow(authUserId, "bind-c"));
+      rpcSet(
+        "bootstrap_authenticated",
+        canonicalAuthBootstrapRow(authUserId, "bind-c"),
+      );
       rpcSet("upgrade_guest_to_auth", [
         {
           status: "CONFLICT",
@@ -515,7 +611,10 @@ describe("bootstrap/runBootstrap — business logic", () => {
       const archivedGuestId = "44444444-4444-4444-8444-444444444444";
       setSessionUser(authUserId);
       seedStateRow(authUserId, { money: 5300, state_version: 6 });
-      rpcSet("bootstrap_authenticated", canonicalAuthBootstrapRow(authUserId, "bind"));
+      rpcSet(
+        "bootstrap_authenticated",
+        canonicalAuthBootstrapRow(authUserId, "bind"),
+      );
       // Note has_guest_progress=true, has_auth_progress=true — but the
       // default policy returns OK_ARCHIVED_GUEST instead of CONFLICT.
       rpcSet("upgrade_guest_to_auth", [
@@ -533,7 +632,9 @@ describe("bootstrap/runBootstrap — business logic", () => {
       ]);
 
       const { runBootstrap } = await loadRunBootstrap();
-      const r = (await runBootstrap({ deviceId: "dev-1" })) as BootstrapResultTypes;
+      const r = (await runBootstrap({
+        deviceId: "dev-1",
+      })) as BootstrapResultTypes;
       expect(r.kind).toBe("ready");
       expect(r.ready?.archivedGuestId).toBe(archivedGuestId);
       expect(r.ready?.archiveReceiptId).toBe("rcpt-default");
@@ -556,7 +657,10 @@ describe("bootstrap/runBootstrap — business logic", () => {
           preserved_association_count: 1,
         },
       ]);
-      seedStateRow("new-guest-after-signout", { money: 2000, state_version: 1 });
+      seedStateRow("new-guest-after-signout", {
+        money: 2000,
+        state_version: 1,
+      });
 
       const { runBootstrap } = await loadRunBootstrap();
       const r = (await runBootstrap({
@@ -574,7 +678,10 @@ describe("bootstrap/runBootstrap — business logic", () => {
       const sameUser = "11111111-1111-4111-8111-111111111111";
       setSessionUser(sameUser);
       seedStateRow(sameUser, { money: 1500 });
-      rpcSet("bootstrap_authenticated", canonicalAuthBootstrapRow(sameUser, "bind-1"));
+      rpcSet(
+        "bootstrap_authenticated",
+        canonicalAuthBootstrapRow(sameUser, "bind-1"),
+      );
       rpcSet("upgrade_guest_to_auth", okNoGuestUpgradeRow(sameUser));
 
       const { runBootstrap } = await loadRunBootstrap();
@@ -608,7 +715,9 @@ describe("bootstrap/runBootstrap — business logic", () => {
       ]);
 
       const { runBootstrap } = await loadRunBootstrap();
-      const r = (await runBootstrap({ deviceId: "dev-orphan" })) as BootstrapResultTypes;
+      const r = (await runBootstrap({
+        deviceId: "dev-orphan",
+      })) as BootstrapResultTypes;
       expect(r.kind).toBe("recovery_required");
     });
   });
@@ -620,7 +729,9 @@ describe("bootstrap/runBootstrap — business logic", () => {
       rpcSet("bootstrap_guest", null); // empty RPC rows → null row → internal_error
 
       const { runBootstrap } = await loadRunBootstrap();
-      const r = (await runBootstrap({ deviceId: "dev-1" })) as BootstrapResultTypes;
+      const r = (await runBootstrap({
+        deviceId: "dev-1",
+      })) as BootstrapResultTypes;
       // null row from RPC → internal_error per rowErrorCode mapping
       expect(["internal_error", "unavailable"]).toContain(r.kind);
     });
@@ -665,7 +776,9 @@ describe("bootstrap/runBootstrap — business logic", () => {
       seedStateRow(authUserId, { money: 2000, state_version: 1 });
 
       const { runBootstrap } = await loadRunBootstrap();
-      const r = (await runBootstrap({ deviceId: "dev-1" })) as BootstrapResultTypes;
+      const r = (await runBootstrap({
+        deviceId: "dev-1",
+      })) as BootstrapResultTypes;
       expect(r.kind).toBe("ready");
       expect(r.ready?.isNewUser).toBe(true); // bind.new_binding → true
       expect(r.ready?.gameState.money).toBe(2000);

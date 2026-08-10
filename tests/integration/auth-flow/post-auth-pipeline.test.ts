@@ -1,49 +1,39 @@
 /**
  * Integration Test: post-auth pipeline.
  *
- * What this DOES test (covers ~80% of what real OAuth would exercise):
- *   - verifyAuth() cookie-ssr round-trip
- *   - /api/auth/device/register post-OAuth profile sync
- *   - /api/auth/identity/link conflict detection
- *   - /api/auth/identity/confirm-link data move + auth_wins semantics
- *   - merge_receipts + merge_audit_log writes
- *   - guest_identities supersede marker
+ * Plan §6 + §7: After OAuth callback, the canonical /api/auth/bootstrap
+ * endpoint resolves the user's session through:
  *
- * What this DOES NOT test (requires Playwright + real provider config):
- *   - The actual OAuth redirect to/from Google or GitHub
- *   - Supabase SDK's exchangeCodeForSession() implementation
- *   - Provider app config on Supabase's Authentication dashboard
+ *   1. bootstrap_authenticated RPC (idempotent device binding)
+ *   2. upgrade_guest_to_auth RPC (default auth_wins_archive_guest policy)
+ *   3. ensure_profile_and_state RPC (repair when state is missing)
+ *   4. loadServerGameStateLite + buildCompleteFullStateForServerRow
  *
- * Why email+password signin is acceptable as a substitute here:
+ * The legacy /api/auth/device/register + /api/auth/identity/link +
+ * /api/auth/identity/confirm-link 3-step flow was removed in PR 4-4B
+ * (plan §21). The canonical 1-step endpoint with optional mergePolicy
+ * replaces it.
+ *
+ * What this test exercises against the live Supabase project:
+ *   - canonical POST /api/auth/bootstrap for an authenticated session
+ *   - default auth_wins_archive_guest policy: guest progress archived
+ *   - explicit_conflict opt-in policy: 409 returned
+ *   - sign-out → guest bootstrap via previousAuthUserId
+ *
+ * Why email+password signin is acceptable as a substitute:
  *   Both Google and signInWithPassword produce the SAME end state from
- *   our server's perspective: a Session object with a user.id stored in
- *   the sb-<ref>-auth-token cookie. Every route from register-device
- *   onward consumes that session identically — they don't differentiate
- *   by `provider`. So testing the post-auth pipeline with signInWithPassword
- *   exercises the same `verifyAuth()` + AuthOrchestrator code paths that
- *   the OAuth callback would trigger.
- *
- * In other words: signInWithPassword tests the code WE wrote; it doesn't
- * test the code Supabase or Google wrote. For the latter, a separate
- * Playwright + real Google workspace test is needed. See
- * README-oauth-testing.md for the full plan.
- *
- * Provider parameterization (google vs github) is preserved for two
- * reasons even though we don't actually click Google:
- *   1. The OAuth user creation path differs in metadata the user
- *      might inspect (app_metadata.provider, user_metadata.full_name,
- *      etc.).
- *   2. Defends against accidentally wiring up provider-specific
- *      behavior in the merge/identity routes.
+ *   the server's perspective — a Session cookie with a user.id. Every
+ *   route from /api/auth/bootstrap onward consumes that session
+ *   identically. The provider-specific OAuth dance is owned by
+ *   Supabase SDK; we test the post-auth pipeline.
  */
 
-import { describe, it, before, after } from "node:test";
+import { describe, it, before, after, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// Load .env (Node 20.6+). The tsx --test runner starts without reading
-// .env, so we load it explicitly.
+// Load .env
 try {
   process.loadEnvFile();
 } catch {}
@@ -60,19 +50,25 @@ let serverReachable = false;
 const fp = (seed: string) => `it-postauth-fp-${seed}-${randomUUID()}`;
 const dev = (seed: string) => `it-postauth-dev-${seed}-${randomUUID()}`;
 
-// ─── Helpers ─────────────────────────────────────────────────────────
-
 interface SessionCookie {
   cookieName: string;
   cookieValue: string;
   cookieHeader: string;
+  accessToken: string;
 }
 
-/**
- * Sign a test user in via the email-password grant. This produces a
- * session cookie that verifyAuth() accepts identically to the OAuth
- * callback. See file header for why this is a valid stand-in.
- */
+interface BootstrapResponse {
+  code?: string;
+  userId?: string;
+  isGuest?: boolean;
+  isNewUser?: boolean;
+  source?: string;
+  archiveReceiptId?: string | null;
+  archivedGuestId?: string | null;
+  conflictReason?: string;
+  gameState?: { money?: number; gameTick?: number };
+}
+
 async function signInWithPasswordCookie(
   email: string,
   password: string,
@@ -90,36 +86,21 @@ async function signInWithPasswordCookie(
     );
   }
   const session = data.session;
-  // Cookie shape expected by @supabase/ssr v0.10+ createServerClient:
-  //   name:  sb-<project-ref>-auth-token
-  //   value: JSON.stringify(session) (URL-encoded for Cookie header)
   const cookieName = `sb-${PROJECT_REF}-auth-token`;
   const cookieValue = JSON.stringify(session);
   return {
     cookieName,
     cookieValue,
     cookieHeader: `${cookieName}=${encodeURIComponent(cookieValue)}`,
+    accessToken: session.access_token,
   };
 }
 
-async function quickstart(
-  deviceId: string,
-  fingerprint: string,
-): Promise<Record<string, unknown>> {
-  const r = await fetch(`${SERVER}/api/auth/guest/quickstart`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ deviceId, fingerprint }),
-  });
-  return (await r.json()) as Record<string, unknown>;
-}
-
-async function postJson(
-  path: string,
-  body: Record<string, unknown>,
+async function bootstrapAs(
   cookie: SessionCookie,
-): Promise<{ status: number; body: Record<string, unknown> }> {
-  const r = await fetch(`${SERVER}${path}`, {
+  body: Record<string, unknown>,
+): Promise<{ status: number; body: BootstrapResponse }> {
+  const r = await fetch(`${SERVER}/api/auth/bootstrap`, {
     method: "POST",
     headers: {
       Cookie: cookie.cookieHeader,
@@ -128,7 +109,7 @@ async function postJson(
     body: JSON.stringify(body),
   });
   const text = await r.text();
-  let parsed: Record<string, unknown> = {};
+  let parsed: BootstrapResponse = {};
   try {
     parsed = text ? JSON.parse(text) : {};
   } catch {}
@@ -141,15 +122,6 @@ async function cleanupUser(uid: string): Promise<void> {
   } catch {}
 }
 
-/**
- * Poll a query until it returns a non-empty result, or 5s timeout.
- * PostgREST replication is eventually consistent; reads immediately
- * after writes can return stale results for ~1-2s.
- *
- * `queryFn` may return any thenable (Supabase's PostgrestBuilder is
- * PromiseLike, not strictly a Promise — `.maybeSingle()` and `.single()`
- * chains return it).
- */
 async function pollFor<T>(
   queryFn: () => PromiseLike<{ data: T | null }>,
   isReady: (r: { data: T | null }) => boolean,
@@ -161,15 +133,9 @@ async function pollFor<T>(
     if (isReady(r)) return r;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  return queryFn(); // final attempt
+  return queryFn();
 }
 
-/**
- * Create a test user simulating a "post-OAuth" account. We create them
- * with email+password so we can signInWithPassword below. The
- * app_metadata.provider and user_metadata fields are set so the user
- * LOOKS like what an OAuth callback would produce.
- */
 async function createPostOAuthLikeUser(provider: "google" | "github") {
   const email = `it-${provider}-${Date.now()}-${randomUUID().slice(0, 8)}@example.com`;
   const password = `IT-${randomUUID().slice(0, 16)}!`;
@@ -184,7 +150,6 @@ async function createPostOAuthLikeUser(provider: "google" | "github") {
     user_metadata: {
       provider,
       full_name: `Test ${provider} User`,
-      // No fingerprint from the OAuth side — register-device writes that.
     },
   });
   if (error || !data.user) {
@@ -194,8 +159,6 @@ async function createPostOAuthLikeUser(provider: "google" | "github") {
   }
   return { user: data.user, email, password };
 }
-
-// ─── Tests ───────────────────────────────────────────────────────────
 
 describe("Post-auth pipeline (google & github coverage)", () => {
   const createdUserIds: string[] = [];
@@ -224,16 +187,31 @@ describe("Post-auth pipeline (google & github coverage)", () => {
     }
   });
 
+  afterEach(async () => {
+    for (const uid of createdUserIds.splice(0)) {
+      await cleanupUser(uid);
+    }
+  });
+
   /**
-   * Setup: a guest has played locally with non-trivial data. We populate
-   * server_game_state with money=5000, tick=1234, and 3 player_actions.
-   * This represents the "real player has been playing for a while" state.
+   * Setup: a guest has played locally with non-trivial data. We
+   * bootstrap via the canonical /api/auth/bootstrap endpoint and then
+   * manually push their server_game_state to non-default values
+   * representing "real player has been playing for a while".
    */
   async function setupGuestWithData(seed: string) {
     const deviceId = dev(seed);
     const fingerprint = fp(seed);
-    const r = await quickstart(deviceId, fingerprint);
-    const guestUserId = r.userId as string;
+    const fingerprintHash = createHash("sha256")
+      .update(fingerprint)
+      .digest("hex");
+    const r = await fetch(`${SERVER}/api/auth/bootstrap`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId, fingerprintHash }),
+    });
+    const body = (await r.json()) as BootstrapResponse;
+    const guestUserId = body.userId!;
     createdUserIds.push(guestUserId);
 
     await supabase
@@ -245,139 +223,58 @@ describe("Post-auth pipeline (google & github coverage)", () => {
       })
       .eq("user_id", guestUserId);
 
-    const paRes = await supabase.from("player_actions").insert([
-      { user_id: guestUserId, action_type: "load" },
-      { user_id: guestUserId, action_type: "save" },
-      { user_id: guestUserId, action_type: "buy_market" },
-    ]);
-    if (paRes.error) {
-      throw new Error(
-        `player_actions insert failed for guest ${guestUserId}: ${paRes.error.message}`,
-      );
-    }
-
-    return { guestUserId, deviceId, fingerprint };
+    return { guestUserId, deviceId, fingerprint, fingerprintHash };
   }
 
   for (const provider of ["google", "github"] as const) {
     describe(`Provider: ${provider}`, () => {
-      it("happy path: guest-with-data binds to OAuth user → data moves to auth user (auth wins)", async (t) => {
+      it("default auth_wins_archive_guest policy: guest-with-data binds to OAuth user; data moves to auth user", async (t) => {
         if (!serverReachable) {
           t.skip("dev server not reachable at localhost:3000");
           return;
         }
 
         // 1. Guest plays locally with some progress.
-        const { guestUserId, deviceId, fingerprint } = await setupGuestWithData(
-          `${provider}-happy`,
-        );
+        const { guestUserId, deviceId, fingerprintHash } =
+          await setupGuestWithData(`${provider}-happy`);
 
-        // 2. Auth user appears (simulates OAuth callback succeeding —
-        //    a row in auth.users with provider metadata). For real
-        //    Google/GitHub this would arrive via /api/auth/callback
-        //    → exchangeCodeForSession(). Here we side-step the
-        //    callback by creating the user directly.
+        // 2. Auth user appears (simulates OAuth callback succeeding).
         const oauth = await createPostOAuthLikeUser(provider);
         createdUserIds.push(oauth.user.id);
 
-        // 3. Browser obtains session cookie after callback. For real
-        //    OAuth, this is the cookie set by exchangeCodeForSession.
-        //    For our test, we signInWithPassword which produces an
-        //    identical-shape session cookie from verifyAuth()'s POV.
+        // 3. Sign in to obtain session cookie (mimics exchangeCodeForSession).
         const cookie = await signInWithPasswordCookie(
           oauth.email,
           oauth.password,
         );
-        assert.ok(cookie.cookieHeader);
 
-        // ─── post-OAuth pipeline (the actual flow) ───
-
-        // 4. register-device: profile.device_fingerprint sync.
-        //    Triggered after OAuth callback by AuthOrchestrator.runPostOAuth.
-        const reg = await postJson(
-          "/api/auth/device/register",
-          { deviceId, fingerprint },
-          cookie,
-        );
+        // 4. POST /api/auth/bootstrap with the auth session.
+        //    Default policy = auth_wins_archive_guest (plan §6).
+        //    The canonical RPC bootstrap_authenticated binds the
+        //    deviceId, then upgrade_guest_to_auth merges guest progress
+        //    into the auth user (archiving the guest).
+        const res = await bootstrapAs(cookie, {
+          deviceId,
+          fingerprintHash,
+        });
         assert.equal(
-          reg.status,
+          res.status,
           200,
-          `register-device failed: ${JSON.stringify(reg.body)}`,
+          `bootstrap failed: ${JSON.stringify(res.body)}`,
         );
-        assert.equal(reg.body.registered, true);
+        assert.equal(res.body.code, "BOOTSTRAP_READY");
+        assert.equal(res.body.source, "auth");
+        assert.equal(res.body.userId, oauth.user.id);
 
-        // profile.device_fingerprint should equal sha256(fingerprint)
-        // (route hashes it before writing)
-        const { data: profReg } = await supabase
-          .from("profiles")
-          .select("device_fingerprint")
-          .eq("id", oauth.user.id)
-          .single();
-        const expectedHash = await import("node:crypto").then((m) =>
-          m.createHash("sha256").update(fingerprint).digest("hex"),
+        // 5. Default policy must surface an archiveReceiptId
+        //    (per plan §6 + §15 — receipt is the durable record).
+        assert.ok(
+          res.body.archiveReceiptId,
+          "default policy must archive the guest and surface archiveReceiptId",
         );
-        // For a fresh oauth user, register-device should populate
-        // device_fingerprint (since user has no existing identity).
-        assert.ok(profReg, "oauth profile missing after register-device");
-        assert.equal(
-          profReg.device_fingerprint,
-          expectedHash,
-          "profiles.device_fingerprint must equal sha256(fingerprint) after register-device",
-        );
+        assert.equal(res.body.archivedGuestId, guestUserId);
 
-        // 5. link-identity: detect conflict with the guest's device.
-        //    Triggered after OAuth callback by AuthOrchestrator.runMergeCheck.
-        const idempotencyKey = `it-${provider}-${randomUUID()}`;
-        const link = await postJson(
-          "/api/auth/identity/link",
-          {
-            idempotencyKey,
-            deviceId,
-            fingerprintHash: expectedHash,
-            userAgent: "test-agent",
-          },
-          cookie,
-        );
-        assert.equal(
-          link.status,
-          200,
-          `link-identity failed: ${JSON.stringify(link.body)}`,
-        );
-        // Conflict expected: this guest deviceId + fingerprint maps
-        // to the guest user we just created.
-        assert.equal(
-          link.body.conflict,
-          true,
-          "conflict expected when guest has server_game_state",
-        );
-        const operationId = link.body.operationId as string;
-        assert.ok(operationId, "operationId returned from link-identity");
-
-        // 6. confirm-link: merge the data (auth wins).
-        //    Triggered by user clicking "Merge" in LoginFloatingPanel.
-        //    Same idempotencyKey is required to match the link-identity
-        //    record (findLinkOperationById is keyed by id + user_id + idempotency_key).
-        const confirm = await postJson(
-          "/api/auth/identity/confirm-link",
-          {
-            operationId,
-            idempotencyKey,
-            fingerprintHash: expectedHash,
-          },
-          cookie,
-        );
-        assert.equal(
-          confirm.status,
-          200,
-          `confirm-link failed: ${JSON.stringify(confirm.body)}`,
-        );
-        assert.equal(confirm.body.survivingUserId, oauth.user.id);
-        assert.equal(confirm.body.archivedUserId, guestUserId);
-        assert.equal(confirm.body.preference, "auth_wins");
-
-        // ─── Final state verification ───
-
-        // Auth user inherits the guest's game-state numbers
+        // 6. Auth user's server_game_state inherits the guest's numbers.
         const { data: oauthSgs } = await supabase
           .from("server_game_state")
           .select("money, game_tick")
@@ -386,91 +283,120 @@ describe("Post-auth pipeline (google & github coverage)", () => {
         assert.ok(oauthSgs, "oauth server_game_state missing after merge");
         assert.equal(oauthSgs.money, 5000, "money moved to auth user");
         assert.equal(oauthSgs.game_tick, 1234, "tick moved to auth user");
-
-        // guest_identities row marked superseded_by = oauth user id
-        const { data: gi } = await supabase
-          .from("guest_identities")
-          .select("superseded_by, is_primary")
-          .eq("user_id", guestUserId)
-          .single();
-        assert.ok(gi, "guest_identities row missing post-merge");
-        assert.equal(gi.superseded_by, oauth.user.id);
-        assert.equal(gi.is_primary, false);
-
-        // player_actions reassigned from guest → oauth
-        const { count: oauthActions } = await supabase
-          .from("player_actions")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", oauth.user.id);
-        const { count: guestActions } = await supabase
-          .from("player_actions")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", guestUserId);
-        assert.equal(
-          oauthActions,
-          3,
-          "all 3 player_actions reassigned to auth user",
-        );
-        assert.equal(
-          guestActions,
-          0,
-          "no player_actions left under guest user",
-        );
-
-        // merge_receipts row created with auth_wins decision_type
-        // merge receipt recorded
-        // PostgREST is eventually consistent for ~1s after writes. Poll
-        // for the receipt + audit rows with a small timeout so we don't
-        // race the read after write.
-        const receiptRes = await pollFor<{
-          id: string;
-          kept_user_id: string;
-          archived_user_id: string;
-          decision_type: string;
-        }>(
-          () =>
-            supabase
-              .from("merge_receipts")
-              .select("id, kept_user_id, archived_user_id, decision_type")
-              .eq("operation_id", operationId)
-              .maybeSingle(),
-          (r) => !!r.data,
-        );
-        const receipt = receiptRes.data;
-        assert.ok(receipt, "merge_receipt must exist");
-        assert.equal(receipt.kept_user_id, oauth.user.id);
-        assert.equal(receipt.archived_user_id, guestUserId);
-        assert.equal(receipt.decision_type, "auth_wins");
-
-        // merge audit log recorded
-        const auditRow = await pollFor<{ id: string }>(
-          () =>
-            supabase
-              .from("merge_audit_log")
-              .select("id")
-              .eq("merge_receipt_id", receipt.id)
-              .maybeSingle(),
-          (r) => !!r.data,
-        );
-        assert.ok(auditRow.data, "merge_audit_log must record the merge");
       });
 
-      it("no conflict when guest had no game data — link-identity returns no_guest_to_link", async (t) => {
+      it("explicit_conflict opt-in policy: 409 ACCOUNT_PROGRESS_CONFLICT when both have progress", async (t) => {
         if (!serverReachable) {
           t.skip("dev server not reachable at localhost:3000");
           return;
         }
 
-        // 1. Guest signs up but never plays → server_game_state exists
-        //    with default money=1000. We bypass by using a brand-new
-        //    deviceId at link-time so guest_identities has nothing for
-        //    this device.
-        const guestFp = fp(`${provider}-noconf`);
-        const guestDev = dev(`${provider}-noconf`);
-        const r = await quickstart(guestDev, guestFp);
-        const guestUserId = r.userId as string;
-        createdUserIds.push(guestUserId);
+        // 1. OAuth user with existing progress.
+        const oauth = await createPostOAuthLikeUser(provider);
+        createdUserIds.push(oauth.user.id);
+        await supabase
+          .from("server_game_state")
+          .update({
+            money: 8000,
+            total_money_earned: 8000,
+            game_tick: 500,
+          })
+          .eq("user_id", oauth.user.id);
 
+        // 2. Guest with progress on a different device.
+        const { deviceId, fingerprintHash } = await setupGuestWithData(
+          `${provider}-conflict`,
+        );
+
+        const cookie = await signInWithPasswordCookie(
+          oauth.email,
+          oauth.password,
+        );
+
+        // 3. POST /api/auth/bootstrap with explicit_conflict opt-in.
+        //    Per plan §6, the RPC only returns CONFLICT when the
+        //    opt-in policy is requested AND both have progress. Default
+        //    policy auto-archives; the test must pass mergePolicy
+        //    explicitly to preserve the legacy 409 path.
+        const res = await bootstrapAs(cookie, {
+          deviceId,
+          fingerprintHash,
+          mergePolicy: "explicit_conflict",
+        });
+        assert.equal(
+          res.status,
+          409,
+          `expected 409, got ${res.status} body=${JSON.stringify(res.body)}`,
+        );
+        assert.equal(res.body.code, "ACCOUNT_PROGRESS_CONFLICT");
+        // conflict metadata is on the response — the canonical
+        // conflictReason + survivingUserId + archivedGuestId are set
+        // by the route's runAuthenticatedBootstrap / conflict path.
+        assert.ok(
+          res.body.conflictReason || res.body.survivingUserId,
+          "conflict response must carry conflictReason or survivingUserId",
+        );
+      });
+
+      it("no conflict when guest had no game data — auth user keeps their state", async (t) => {
+        if (!serverReachable) {
+          t.skip("dev server not reachable at localhost:3000");
+          return;
+        }
+
+        // 1. Fresh oauth user (no server_game_state yet).
+        const oauth = await createPostOAuthLikeUser(provider);
+        createdUserIds.push(oauth.user.id);
+        // Seed auth state directly via supabase (default empty row would
+        // exist after the device/register side-effect; for this test
+        // we leave the row absent).
+        const cookie = await signInWithPasswordCookie(
+          oauth.email,
+          oauth.password,
+        );
+
+        // 2. Bootstrap on a brand-new deviceId (no guest on this
+        //    device). upgrade_guest_to_auth returns OK_NO_GUEST.
+        const res = await bootstrapAs(cookie, {
+          deviceId: dev(`${provider}-noconf`),
+          fingerprintHash: createHash("sha256")
+            .update(fp(`${provider}-noconf`))
+            .digest("hex"),
+        });
+        assert.equal(res.status, 200, `bootstrap: ${JSON.stringify(res.body)}`);
+        assert.equal(res.body.code, "BOOTSTRAP_READY");
+        assert.equal(res.body.source, "auth");
+        assert.equal(res.body.userId, oauth.user.id);
+        // No archive happened (no guest existed on this fresh device).
+        assert.equal(
+          res.body.archiveReceiptId,
+          null,
+          "no archive expected when no guest exists",
+        );
+        assert.equal(
+          res.body.archivedGuestId,
+          null,
+          "no archivedGuestId expected when no guest exists",
+        );
+      });
+
+      it("idempotent re-bootstrap: second visit does not double-archive the same guest", async (t) => {
+        if (!serverReachable) {
+          t.skip("dev server not reachable at localhost:3000");
+          return;
+        }
+
+        // Plan §6 + §15 invariant: after the first archive, a second
+        // bootstrap on the same device must NOT re-archive the same
+        // guest. The canonical upgrade_guest_to_auth RPC returns
+        // OK_NO_GUEST when the device binding already points to the
+        // auth user.
+
+        // 1. Guest with progress
+        const { deviceId, fingerprintHash } = await setupGuestWithData(
+          `${provider}-idem`,
+        );
+        // 2. OAuth user
         const oauth = await createPostOAuthLikeUser(provider);
         createdUserIds.push(oauth.user.id);
         const cookie = await signInWithPasswordCookie(
@@ -478,30 +404,47 @@ describe("Post-auth pipeline (google & github coverage)", () => {
           oauth.password,
         );
 
-        // Use a fresh deviceId that has no existing identity. No
-        // conflict should arise.
-        const link = await postJson(
-          "/api/auth/identity/link",
-          {
-            idempotencyKey: `it-${provider}-noconf-${randomUUID()}`,
-            deviceId: dev(`${provider}-noconf-fresh`),
-            fingerprintHash: await import("node:crypto").then((m) =>
-              m.createHash("sha256").update(guestFp).digest("hex"),
-            ),
-            userAgent: "test-agent",
-          },
-          cookie,
+        // 3. First bootstrap: archive happens
+        const r1 = await bootstrapAs(cookie, {
+          deviceId,
+          fingerprintHash,
+        });
+        assert.equal(r1.status, 200);
+        assert.ok(r1.body.archiveReceiptId, "first visit should archive");
+        const firstReceipt = r1.body.archiveReceiptId;
+        const firstArchived = r1.body.archivedGuestId;
+
+        // 4. Second bootstrap on the same device: must NOT re-archive
+        const r2 = await bootstrapAs(cookie, {
+          deviceId,
+          fingerprintHash,
+        });
+        assert.equal(r2.status, 200);
+        assert.equal(r2.body.source, "auth");
+        assert.equal(r2.body.userId, oauth.user.id);
+        // No second archive receipt — the upgrade RPC returns
+        // OK_NO_GUEST because the device binding now points to the
+        // auth user, not the guest.
+        assert.equal(
+          r2.body.archiveReceiptId,
+          null,
+          "second visit must not re-archive the same guest",
         );
         assert.equal(
-          link.status,
-          200,
-          `link-identity: ${JSON.stringify(link.body)}`,
+          r2.body.archivedGuestId,
+          null,
+          "second visit must not surface an archivedGuestId",
         );
-        assert.equal(
-          link.body.reason,
-          "no_guest_to_link",
-          "fresh-deviceId oauth user should see no conflict",
-        );
+        // Money + tick unchanged across visits.
+        assert.equal(r1.body.gameState?.money, 5000);
+        assert.equal(r2.body.gameState?.money, 5000);
+
+        // Note: firstReceipt / firstArchived are captured to make
+        // the assertion intent obvious in the trace; we don't
+        // assert equality of values, just that the second visit
+        // produces no new archive record.
+        void firstReceipt;
+        void firstArchived;
       });
     });
   }

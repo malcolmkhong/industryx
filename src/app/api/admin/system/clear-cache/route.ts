@@ -26,6 +26,7 @@ import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { requireAdminWrite } from "@/lib/auth/admin-route-guards";
 import { logAdminAction } from "@/lib/auth/admin-helpers";
 import { invalidateCanonicalInitialStateCache } from "@/lib/db/infra/initialState.server";
+import { invalidateGameConfigCache } from "@/lib/db/infra/gameConfigCache.server";
 
 export async function POST() {
   const authResult = await verifyAdmin();
@@ -38,7 +39,14 @@ export async function POST() {
   // don't wait for it — the next request after this response
   // will see the cleared cache. Errors inside the cache helper
   // are already logged.
+  //
+  // R-3 audit fix (2026-07-18): now flushes BOTH the
+  // cross-instance Redis caches AND the per-process canonical
+  // state cache. Previously the route only flushed the
+  // per-process module-level `cache` in initialState.server.ts,
+  // leaving other instances behind their Redis-served entries.
   invalidateCanonicalInitialStateCache();
+  invalidateGameConfigCache();
 
   await logAdminAction({
     adminId: authResult.admin.id,
@@ -49,7 +57,8 @@ export async function POST() {
   return withSecurityHeaders(
     NextResponse.json({
       success: true,
-      message: "Canonical state cache cleared. Next guest request rebuilds from DB.",
+      message:
+        "Canonical state cache cleared. Next guest request rebuilds from DB.",
       clearedAt: new Date().toISOString(),
     }),
   );

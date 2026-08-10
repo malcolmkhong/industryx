@@ -32,7 +32,7 @@ export function GameCard({ children, className, accent = 'none', hoverable = fal
   return (
     <Component
       className={cn(
-        'rounded-xl border border-muted-label/30 bg-[#111827] p-4 transition-all duration-300',
+        'rounded-xl border border-muted-label/30 bg-industrial-card p-4 transition-all duration-300',
         ACCENT_MAP[accent],
         hoverable && 'hover:border-muted-label/50 hover:shadow-lg hover:scale-[1.01]',
         clickable && 'cursor-pointer focus-visible:ring-2 focus-visible:ring-brand/50',

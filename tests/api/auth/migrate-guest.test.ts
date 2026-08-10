@@ -1,4 +1,4 @@
-﻿/**
+/**
  * tests/api/auth/guest/migrate.test.ts
  *
  * Boundary + auth + decision-branch tests for POST /api/auth/guest/migrate.
@@ -15,46 +15,75 @@
  *   - 500 when unexpected error thrown
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NextResponse } from 'next/server';
-import { buildRequest, readJson } from '../helpers/request';
-import { mockSupabaseServer } from '../../unit/mocks/supabase';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextResponse } from "next/server";
+import { buildRequest, readJson } from "../helpers/request";
+import { mockSupabaseServer } from "../../unit/mocks/supabase";
 
-vi.mock('@/lib/db/access', () => mockSupabaseServer());
-vi.mock('@/lib/auth/rateLimiter', () => ({
+vi.mock("@/lib/db/access", () => mockSupabaseServer());
+vi.mock("@/lib/auth/rateLimiter", () => ({
   checkRateLimit: vi.fn().mockResolvedValue(null),
-  RATE_LIMITS: { action: { limit: 100, windowMs: 60000 }, general: { limit: 200, windowMs: 60000 } },
+  // Match the real RateLimitConfig shape used by the route
+  // (RATE_LIMITS.action / RATE_LIMITS.general) — see
+  // src/lib/auth/rateLimiter.ts. The legacy test used `limit:` which
+  // the route never read; the route reads `maxRequests` / `windowMs`
+  // / `failClosed`.
+  RATE_LIMITS: {
+    bootstrap: { maxRequests: 20, windowMs: 60_000, failClosed: false },
+    player: { maxRequests: 20, windowMs: 60_000, failClosed: false },
+    action: { maxRequests: 100, windowMs: 60_000, failClosed: true },
+    sync: { maxRequests: 20, windowMs: 60_000, failClosed: true },
+    publicConfig: { maxRequests: 30, windowMs: 60_000, failClosed: false },
+    config: { maxRequests: 30, windowMs: 60_000, failClosed: false },
+    presence: { maxRequests: 60, windowMs: 60_000, failClosed: false },
+    general: { maxRequests: 200, windowMs: 60_000, failClosed: false },
+    adminRead: { maxRequests: 60, windowMs: 60_000, failClosed: false },
+    adminWrite: { maxRequests: 30, windowMs: 60_000, failClosed: true },
+    admin: { maxRequests: 60, windowMs: 60_000, failClosed: false },
+    serverTick: { maxRequests: 12, windowMs: 60_000, failClosed: true },
+    compute: { maxRequests: 10, windowMs: 60_000, failClosed: false },
+  },
 }));
-vi.mock('@/lib/auth/verifyAuth', () => ({
-  verifyAuth: vi.fn().mockResolvedValue({ success: true, userId: 'user-1', email: 'test@example.com' }),
-  verifyAuthAndOwnership: vi.fn().mockResolvedValue({ success: true, userId: 'user-1', email: 'test@example.com' }),
+vi.mock("@/lib/auth/verifyAuth", () => ({
+  verifyAuth: vi.fn().mockResolvedValue({
+    success: true,
+    userId: "user-1",
+    email: "test@example.com",
+  }),
+  verifyAuthAndOwnership: vi.fn().mockResolvedValue({
+    success: true,
+    userId: "user-1",
+    email: "test@example.com",
+  }),
 }));
 
 const validateGuestMigration = vi.fn();
 const validateGameStateFn = vi.fn();
-vi.mock('@/lib/auth/guestMigrationValidator', () => ({
-  validateGuestMigration: (...args: unknown[]) => validateGuestMigration(...args),
+vi.mock("@/lib/auth/guestMigrationValidator", () => ({
+  validateGuestMigration: (...args: unknown[]) =>
+    validateGuestMigration(...args),
 }));
 const extractValidatedSaveFieldsFn = vi.fn();
-vi.mock('@/lib/auth/gameStateValidator', () => ({
+vi.mock("@/lib/auth/gameStateValidator", () => ({
   validateGameState: (...args: unknown[]) => validateGameStateFn(...args),
   extractValidatedSaveFields: (...args: unknown[]) =>
     extractValidatedSaveFieldsFn(...args),
-  generateChecksum: vi.fn(() => 'mock-checksum'),
+  generateChecksum: vi.fn(() => "mock-checksum"),
   flagCheatAttempt: vi.fn(async () => undefined),
   logActionAsync: vi.fn(),
 }));
 
 const getGameTickMock = vi.fn();
 const upsertServerGameStateMock = vi.fn();
-vi.mock('@/lib/db/serverGameState', () => ({
+vi.mock("@/lib/db/game/serverGameState", () => ({
   getGameTick: (...args: unknown[]) => getGameTickMock(...args),
-  upsertServerGameState: (...args: unknown[]) => upsertServerGameStateMock(...args),
+  upsertServerGameState: (...args: unknown[]) =>
+    upsertServerGameStateMock(...args),
 }));
-vi.mock('@/lib/db/game/playerProgress', () => ({
+vi.mock("@/lib/db/game/playerProgress", () => ({
   upsertPlayerProgress: vi.fn(async () => undefined),
 }));
-vi.mock('@/lib/db/initialState.server', () => ({
+vi.mock("@/lib/db/infra/initialState.server", () => ({
   fetchCanonicalInitialState: vi.fn(async () => ({
     money: 1000, // mirrors balanceConfig.offline.startingMoney default
     totalMoneyEarned: 0,
@@ -68,7 +97,7 @@ vi.mock('@/lib/db/initialState.server', () => ({
   })),
 }));
 
-import { POST } from '@/app/api/auth/guest/migrate/route';
+import { POST } from "@/app/api/auth/guest/migrate/route";
 
 // â”€â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -86,51 +115,73 @@ const VALID_GAME_STATE: Record<string, unknown> = {
 
 const REJECT_RESULT = {
   isValid: false,
-  riskLevel: 'critical' as const,
-  violations: ['Impossible wealth-to-time ratio'],
+  riskLevel: "critical" as const,
+  violations: ["Impossible wealth-to-time ratio"],
   checks: [
-    { name: 'wealth_ratio', passed: false, severity: 'critical' as const, detail: 'money too high' },
+    {
+      name: "wealth_ratio",
+      passed: false,
+      severity: "critical" as const,
+      detail: "money too high",
+    },
   ],
-  action: 'reject' as const,
-  summary: 'Guest state failed validation â€” cheating detected',
+  action: "reject" as const,
+  summary: "Guest state failed validation â€” cheating detected",
 };
 
 const FLAG_RESULT = {
   isValid: true,
-  riskLevel: 'medium' as const,
-  violations: ['borderline ratio'],
+  riskLevel: "medium" as const,
+  violations: ["borderline ratio"],
   checks: [
-    { name: 'wealth_ratio', passed: true, severity: 'medium' as const, detail: 'within tolerance' },
+    {
+      name: "wealth_ratio",
+      passed: true,
+      severity: "medium" as const,
+      detail: "within tolerance",
+    },
   ],
-  action: 'accept_with_flag' as const,
-  summary: 'Flagged but within tolerance',
+  action: "accept_with_flag" as const,
+  summary: "Flagged but within tolerance",
 };
 
 const ACCEPT_RESULT = {
   isValid: true,
-  riskLevel: 'low' as const,
+  riskLevel: "low" as const,
   violations: [],
   checks: [
-    { name: 'wealth_ratio', passed: true, severity: 'none' as const, detail: 'ok' },
+    {
+      name: "wealth_ratio",
+      passed: true,
+      severity: "none" as const,
+      detail: "ok",
+    },
   ],
-  action: 'accept' as const,
-  summary: 'Valid',
+  action: "accept" as const,
+  summary: "Valid",
 };
 
-const STANDARD_VALIDATION = { violations: [], riskLevel: 'none' as const };
+const STANDARD_VALIDATION = { violations: [], riskLevel: "none" as const };
 
-function resetMocks(opts: {
-  existingCloudTick?: number | null;
-  // Loose type so callers can switch between ACCEPT/FLAG/REJECT across tests.
-  migrationResult?: unknown;
-  upsertSuccess?: boolean;
-} = {}) {
+function resetMocks(
+  opts: {
+    existingCloudTick?: number | null;
+    // Loose type so callers can switch between ACCEPT/FLAG/REJECT across tests.
+    migrationResult?: unknown;
+    upsertSuccess?: boolean;
+  } = {},
+) {
   getGameTickMock.mockReset().mockResolvedValue(opts.existingCloudTick ?? null);
-  upsertServerGameStateMock.mockReset().mockResolvedValue(opts.upsertSuccess ?? true);
-  validateGuestMigration.mockReset().mockImplementation(() => opts.migrationResult ?? ACCEPT_RESULT);
+  upsertServerGameStateMock
+    .mockReset()
+    .mockResolvedValue(opts.upsertSuccess ?? true);
+  validateGuestMigration
+    .mockReset()
+    .mockImplementation(() => opts.migrationResult ?? ACCEPT_RESULT);
   validateGameStateFn.mockReset().mockReturnValue(STANDARD_VALIDATION);
-  extractValidatedSaveFieldsFn.mockReset().mockImplementation(
-    (gs: Record<string, unknown>) => ({
+  extractValidatedSaveFieldsFn
+    .mockReset()
+    .mockImplementation((gs: Record<string, unknown>) => ({
       money: Number(gs.money) || 0,
       totalMoneyEarned: Number(gs.totalMoneyEarned) || 0,
       researchPoints: Number(gs.researchPoints) || 0,
@@ -139,13 +190,12 @@ function resetMocks(opts: {
       buildingsCount: Array.isArray(gs.buildings)
         ? (gs.buildings as unknown[]).length
         : 0,
-    }),
-  );
+    }));
 }
 
 // â”€â”€â”€ tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('POST /api/auth/guest/migrate', () => {
+describe("POST /api/auth/guest/migrate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetMocks();
@@ -153,10 +203,10 @@ describe('POST /api/auth/guest/migrate', () => {
 
   // â”€â”€ input validation â”€â”€
 
-  it('returns 400 when userId is missing', async () => {
+  it("returns 400 when userId is missing", async () => {
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
+      method: "POST",
+      url: "/api/auth/guest/migrate",
       body: { gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
@@ -165,11 +215,11 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(body.error).toMatch(/userId/);
   });
 
-  it('returns 400 when gameState is missing', async () => {
+  it("returns 400 when gameState is missing", async () => {
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
-      body: { userId: 'user-1' },
+      method: "POST",
+      url: "/api/auth/guest/migrate",
+      body: { userId: "user-1" },
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -177,10 +227,10 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(body.error).toMatch(/gameState/);
   });
 
-  it('returns 400 when both userId and gameState are missing', async () => {
+  it("returns 400 when both userId and gameState are missing", async () => {
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
+      method: "POST",
+      url: "/api/auth/guest/migrate",
       body: {},
     });
     const res = await POST(req);
@@ -189,18 +239,21 @@ describe('POST /api/auth/guest/migrate', () => {
 
   // â”€â”€ auth failure â”€â”€
 
-  it('forwards auth failure (verifyAuthAndOwnership non-success)', async () => {
-    const failureResponse = NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    const { verifyAuthAndOwnership } = await import('@/lib/auth/verifyAuth');
+  it("forwards auth failure (verifyAuthAndOwnership non-success)", async () => {
+    const failureResponse = NextResponse.json(
+      { error: "Forbidden" },
+      { status: 403 },
+    );
+    const { verifyAuthAndOwnership } = await import("@/lib/auth/verifyAuth");
     (verifyAuthAndOwnership as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       success: false,
       response: failureResponse,
     });
 
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
-      body: { userId: 'user-1', gameState: VALID_GAME_STATE },
+      method: "POST",
+      url: "/api/auth/guest/migrate",
+      body: { userId: "user-1", gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
     expect(res.status).toBe(403);
@@ -208,15 +261,20 @@ describe('POST /api/auth/guest/migrate', () => {
 
   // â”€â”€ rate limit â”€â”€
 
-  it('returns 429 when rate-limited', async () => {
-    const { checkRateLimit } = await import('@/lib/auth/rateLimiter');
-    const rateResponse = NextResponse.json({ error: 'rate_limited' }, { status: 429 });
-    (checkRateLimit as ReturnType<typeof vi.fn>).mockResolvedValueOnce(rateResponse);
+  it("returns 429 when rate-limited", async () => {
+    const { checkRateLimit } = await import("@/lib/auth/rateLimiter");
+    const rateResponse = NextResponse.json(
+      { error: "rate_limited" },
+      { status: 429 },
+    );
+    (checkRateLimit as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      rateResponse,
+    );
 
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
-      body: { userId: 'user-1', gameState: VALID_GAME_STATE },
+      method: "POST",
+      url: "/api/auth/guest/migrate",
+      body: { userId: "user-1", gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
     expect(res.status).toBe(429);
@@ -227,9 +285,9 @@ describe('POST /api/auth/guest/migrate', () => {
   it('returns 200 with action: "use_cloud" when cloud state already exists', async () => {
     resetMocks({ existingCloudTick: 500, migrationResult: ACCEPT_RESULT });
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
-      body: { userId: 'user-1', gameState: VALID_GAME_STATE },
+      method: "POST",
+      url: "/api/auth/guest/migrate",
+      body: { userId: "user-1", gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -239,7 +297,7 @@ describe('POST /api/auth/guest/migrate', () => {
       cloudTick: number;
     }>(res);
     expect(body.migrated).toBe(false);
-    expect(body.action).toBe('use_cloud');
+    expect(body.action).toBe("use_cloud");
     expect(body.cloudTick).toBe(500);
     expect(upsertServerGameStateMock).not.toHaveBeenCalled();
   });
@@ -249,9 +307,9 @@ describe('POST /api/auth/guest/migrate', () => {
   it('returns 200 with action: "reset" when migration rejected + flag cheat + zero state', async () => {
     resetMocks({ migrationResult: REJECT_RESULT });
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
-      body: { userId: 'user-1', gameState: VALID_GAME_STATE },
+      method: "POST",
+      url: "/api/auth/guest/migrate",
+      body: { userId: "user-1", gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -262,9 +320,9 @@ describe('POST /api/auth/guest/migrate', () => {
       riskLevel: string;
     }>(res);
     expect(body.migrated).toBe(false);
-    expect(body.action).toBe('reset');
+    expect(body.action).toBe("reset");
     expect(body.violations.length).toBeGreaterThan(0);
-    expect(body.riskLevel).toBe('critical');
+    expect(body.riskLevel).toBe("critical");
     // Reset state saved with cheat flag
     expect(upsertServerGameStateMock).toHaveBeenCalledTimes(1);
     const saved = upsertServerGameStateMock.mock.calls[0]?.[0] as {
@@ -279,13 +337,13 @@ describe('POST /api/auth/guest/migrate', () => {
 
   // â”€â”€ accept_with_flag branch â”€â”€
 
-  it('returns 200 + flags cheat + saves state on accept_with_flag', async () => {
-    const { flagCheatAttempt } = await import('@/lib/auth/gameStateValidator');
+  it("returns 200 + flags cheat + saves state on accept_with_flag", async () => {
+    const { flagCheatAttempt } = await import("@/lib/auth/gameStateValidator");
     resetMocks({ migrationResult: FLAG_RESULT });
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
-      body: { userId: 'user-1', gameState: VALID_GAME_STATE },
+      method: "POST",
+      url: "/api/auth/guest/migrate",
+      body: { userId: "user-1", gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -295,11 +353,11 @@ describe('POST /api/auth/guest/migrate', () => {
       stateHash: string;
     }>(res);
     expect(body.migrated).toBe(true);
-    expect(body.action).toBe('accept_with_flag');
-    expect(body.stateHash).toBe('mock-checksum');
+    expect(body.action).toBe("accept_with_flag");
+    expect(body.stateHash).toBe("mock-checksum");
     expect(flagCheatAttempt).toHaveBeenCalledWith(
-      'user-1',
-      'guest_migration_flagged',
+      "user-1",
+      "guest_migration_flagged",
       expect.any(String),
       expect.any(String),
     );
@@ -308,12 +366,12 @@ describe('POST /api/auth/guest/migrate', () => {
 
   // â”€â”€ accept happy path â”€â”€
 
-  it('returns 200 + saves state on accept', async () => {
+  it("returns 200 + saves state on accept", async () => {
     resetMocks({ migrationResult: ACCEPT_RESULT });
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
-      body: { userId: 'user-1', gameState: VALID_GAME_STATE },
+      method: "POST",
+      url: "/api/auth/guest/migrate",
+      body: { userId: "user-1", gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -323,44 +381,44 @@ describe('POST /api/auth/guest/migrate', () => {
       message: string;
     }>(res);
     expect(body.migrated).toBe(true);
-    expect(body.action).toBe('accept');
-    expect(body.message).toContain('migrated');
+    expect(body.action).toBe("accept");
+    expect(body.message).toContain("migrated");
     expect(upsertServerGameStateMock).toHaveBeenCalledTimes(1);
     const saved = upsertServerGameStateMock.mock.calls[0]?.[0] as {
       user_id: string;
       game_tick: number;
       cheat_flag_count: number;
     };
-    expect(saved.user_id).toBe('user-1');
+    expect(saved.user_id).toBe("user-1");
     expect(saved.game_tick).toBe(100);
     expect(saved.cheat_flag_count).toBe(0);
   });
 
   // â”€â”€ upsert failure â”€â”€
 
-  it('returns 500 when upsertServerGameState fails', async () => {
+  it("returns 500 when upsertServerGameState fails", async () => {
     resetMocks({ migrationResult: ACCEPT_RESULT, upsertSuccess: false });
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
-      body: { userId: 'user-1', gameState: VALID_GAME_STATE },
+      method: "POST",
+      url: "/api/auth/guest/migrate",
+      body: { userId: "user-1", gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
     expect(res.status).toBe(500);
     const body = await readJson<{ error?: string }>(res);
-    expect(body.error).toBe('Failed to save cloud state');
+    expect(body.error).toBe("Failed to save cloud state");
   });
 
   // â”€â”€ unexpected throw â”€â”€
 
-  it('returns 500 on unexpected throw', async () => {
+  it("returns 500 on unexpected throw", async () => {
     validateGuestMigration.mockImplementationOnce(() => {
-      throw new Error('explosion');
+      throw new Error("explosion");
     });
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
-      body: { userId: 'user-1', gameState: VALID_GAME_STATE },
+      method: "POST",
+      url: "/api/auth/guest/migrate",
+      body: { userId: "user-1", gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
     expect(res.status).toBe(500);
@@ -370,21 +428,22 @@ describe('POST /api/auth/guest/migrate', () => {
 
   // â”€â”€ displayName sanitization â”€â”€
 
-  it('sanitizes displayName (strips control chars + angle brackets, caps length)', async () => {
+  it("sanitizes displayName (strips control chars + angle brackets, caps length)", async () => {
     resetMocks({ migrationResult: ACCEPT_RESULT });
     const req = buildRequest({
-      method: 'POST',
-      url: '/api/auth/guest/migrate',
+      method: "POST",
+      url: "/api/auth/guest/migrate",
       body: {
-        userId: 'user-1',
+        userId: "user-1",
         gameState: VALID_GAME_STATE,
-        displayName: '<script>alert(1)</script>' + 'A'.repeat(50),
+        displayName: "<script>alert(1)</script>" + "A".repeat(50),
       },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
     // Calls upsertPlayerProgress with sanitized name
-    const { upsertPlayerProgress } = await import('@/lib/db/game/playerProgress');
+    const { upsertPlayerProgress } =
+      await import("@/lib/db/game/playerProgress");
     const calls = (upsertPlayerProgress as ReturnType<typeof vi.fn>).mock.calls;
     expect(calls.length).toBeGreaterThan(0);
     const playerProgressArg = calls[0]?.[1] as { display_name: string };
