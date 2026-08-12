@@ -153,17 +153,22 @@ vi.mock("@/lib/game/production/engine/tick/productionSnapshot", () => ({
 const gameStateRows = vi.hoisted(
   () => new Map<string, Record<string, unknown>>(),
 );
-const saveCalls = vi.hoisted(() => [] as { expectedVersion: number; newMoney: number; newGameTick: number; newStateVersion: number }[]);
+const saveCalls = vi.hoisted(
+  () =>
+    [] as {
+      expectedVersion: number;
+      newMoney: number;
+      newGameTick: number;
+      newStateVersion: number;
+    }[],
+);
 
 let serverNowMs = 1_700_000_000_000;
 let startingMoney = 2000;
 
 vi.mock("@/lib/db/access", () => ({
-  createServiceRoleClient: () => ({
   // BUG-077: canonical boundary names mirror the legacy alias.
-  getDbClient: () => ({,
-  requireDbClient: () => ({ from: vi.fn() }),
-  isDbClientConfigured: vi.fn(() => true),
+  getDbClient: () => ({
     rpc: vi.fn(async (fn: string, args?: Record<string, unknown>) => {
       if (fn === "now_iso") {
         return { data: new Date(serverNowMs).toISOString(), error: null };
@@ -245,8 +250,20 @@ vi.mock("@/lib/db/access", () => ({
       };
     }),
   }),
+  createServiceRoleClient: () => ({
+    rpc: vi.fn(async (fn: string) => {
+      if (fn === "now_iso") {
+        return { data: new Date(serverNowMs).toISOString(), error: null };
+      }
+      return { data: null, error: null };
+    }),
+  }),
+  requireDbClient: () => ({ from: vi.fn() }),
+  isDbClientConfigured: vi.fn(() => true),
   createClient: async () => ({
-    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+    },
   }),
   isSupabaseConfigured: () => true,
   isServiceRoleConfigured: () => true,

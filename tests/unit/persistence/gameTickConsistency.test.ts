@@ -52,7 +52,7 @@ const KNOWN_WRITERS: KnownWriter[] = [
     file: "src/lib/db/game/serverGameState.ts",
     label: "buildCompleteFullStateForServerRow (canonical seed)",
     blockMatcher:
-      /game_tick:\s*canonical\.gameTick[\s\S]*?full_state:\s*prepared/,
+      /game_tick:\s*canonical\.gameTick[\s\S]*?full_state:\s*canonical/,
   },
   {
     file: "src/app/api/game/state/sync/route.ts",
@@ -85,6 +85,13 @@ describe("Phase 7 — canonical seed keeps both fields aligned", () => {
     const text = read(
       "src/lib/game/actions/server/shared/denormalizedStatePatch.ts",
     );
-    expect(text).toMatch(/game_tick:\s*state\.gameTick/);
+    // The denormalized patch derives `game_tick` from state.gameTick
+    // (possibly wrapped in a `finiteNumberOr` coercion that falls
+    // back to `fallback.game_tick` if the JSON field is missing).
+    // The next sibling key in the patch object is `money` (a few
+    // lines below). Match the wrapped form by anchoring on that.
+    expect(text).toMatch(
+      /game_tick:.*\bstate\.gameTick\b[\s\S]{0,600}\bmoney:/,
+    );
   });
 });

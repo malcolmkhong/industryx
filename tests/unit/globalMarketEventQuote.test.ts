@@ -85,8 +85,8 @@ describe("Phase 5 — endsAtTick derivation", () => {
   it("derives endsAtTick from the canonical world clock", () => {
     const expiresAtMs = Date.parse(ACTIVE_EVENT.expiresAt);
     const expectedTick = Math.floor(
-      ((expiresAtMs - Date.parse(DEFAULT_WORLD_CLOCK.worldStartUtc)) *
-        DEFAULT_WORLD_CLOCK.ticksPerRealSecond) /
+      ((expiresAtMs - DEFAULT_WORLD_CLOCK.epochMs) *
+        DEFAULT_WORLD_CLOCK.ticksPerSecond) /
         1000,
     );
 
@@ -191,7 +191,11 @@ describe("Phase 5 — endsAtTick derivation", () => {
   });
 
   it("falls back to endsAtTick=0 if clock derivation throws", () => {
-    const badClock = { ...DEFAULT_WORLD_CLOCK, worldStartUtc: "not-an-iso" };
+    // ticksPerSecond=0 forces the rate-validation branch in
+    // utcMsToTick to throw — that's the canonical "broken clock"
+    // signal the resolver catches and falls through to endsAtTick=0
+    // + clockDegraded=true.
+    const badClock = { ...DEFAULT_WORLD_CLOCK, ticksPerSecond: 0 };
     const resolved = resolveActiveGlobalMarketEvent(
       ACTIVE_EVENT,
       Date.parse("2026-07-19T00:15:00.000Z"),
@@ -209,10 +213,7 @@ describe("Phase 5 — endsAtTick derivation", () => {
     // new version logs so production telemetry captures the cause.
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
-      const badClock = {
-        ...DEFAULT_WORLD_CLOCK,
-        worldStartUtc: "not-an-iso",
-      };
+      const badClock = { ...DEFAULT_WORLD_CLOCK, ticksPerSecond: 0 };
       resolveActiveGlobalMarketEvent(
         ACTIVE_EVENT,
         Date.parse("2026-07-19T00:15:00.000Z"),
@@ -231,7 +232,7 @@ describe("Phase 5 — endsAtTick derivation", () => {
     // "world clock is broken" (endsAtTick=0 + clockDegraded=true).
     // The client can now render a degraded-state UI for the latter.
     vi.spyOn(console, "error").mockImplementation(() => {});
-    const badClock = { ...DEFAULT_WORLD_CLOCK, worldStartUtc: "not-an-iso" };
+    const badClock = { ...DEFAULT_WORLD_CLOCK, ticksPerSecond: 0 };
     const resolved = resolveActiveGlobalMarketEvent(
       ACTIVE_EVENT,
       Date.parse("2026-07-19T00:15:00.000Z"),

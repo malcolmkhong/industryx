@@ -31,7 +31,7 @@ describe("authorizeActionContext guest device binding", () => {
     (callBootstrapGuest as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       row: {
-        status: "OK",
+        status: "OK_EXISTING",
         user_id: "guest-user-1",
         binding_id: "binding-1",
         is_new_user: false,

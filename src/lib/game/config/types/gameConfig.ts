@@ -39,6 +39,7 @@ export interface GameConfig {
     productionMultiplier: number;
     solarMultiplier: number;
     windMultiplier: number;
+    transportMultiplier?: number;
     description: string;
   }>;
   workers: Array<{

@@ -23,38 +23,39 @@ const rpcScript = vi.hoisted(() => ({
   guest: null as unknown[] | null,
 }));
 
-vi.mock("@/lib/db/access", () => ({
-  createServiceRoleClient: () => ({
-  // BUG-077: canonical boundary names mirror the legacy alias.
-  getDbClient: () => ({,
-  requireDbClient: () => ({ from: vi.fn() }),
-  isDbClientConfigured: vi.fn(() => true),
-    rpc: vi.fn(async (fn: string) => {
-      if (fn === "now_iso") return { data: new Date().toISOString(), error: null };
-      if (fn === "bootstrap_guest") {
-        return rpcScript.guest
-          ? { data: rpcScript.guest, error: null }
-          : { data: null, error: null };
-      }
-      return { data: null, error: null };
-    }),
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({
-            data: stateRows.get("guest-1") ?? null,
-            error: stateRows.has("guest-1") ? null : { code: "PGRST116" },
-          }),
-        })),
+vi.mock("@/lib/db/access", () => {
+  const rpc = vi.fn(async (fn: string) => {
+    if (fn === "now_iso") return { data: new Date().toISOString(), error: null };
+    if (fn === "bootstrap_guest") {
+      return rpcScript.guest
+        ? { data: rpcScript.guest, error: null }
+        : { data: null, error: null };
+    }
+    return { data: null, error: null };
+  });
+  const from = vi.fn(() => ({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: stateRows.get("guest-1") ?? null,
+          error: stateRows.has("guest-1") ? null : { code: "PGRST116" },
+        }),
       })),
     })),
-  }),
-  createClient: async () => ({
-    auth: { getUser: async () => ({ data: { user: null }, error: null }) },
-  }),
-  isSupabaseConfigured: () => true,
-  isServiceRoleConfigured: () => true,
-}));
+  }));
+  return {
+    // BUG-077: canonical boundary names mirror the legacy alias.
+    createServiceRoleClient: () => ({ rpc, from }),
+    getDbClient: () => ({ rpc, from }),
+    requireDbClient: () => ({ rpc, from }),
+    isDbClientConfigured: vi.fn(() => true),
+    createClient: async () => ({
+      auth: { getUser: async () => ({ data: { user: null }, error: null }) },
+    }),
+    isSupabaseConfigured: () => true,
+    isServiceRoleConfigured: () => true,
+  };
+});
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({

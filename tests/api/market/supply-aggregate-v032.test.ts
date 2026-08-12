@@ -26,13 +26,13 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock('@/lib/db/access', () => ({
-
+vi.mock("@/lib/db/access", () => ({
   // BUG-077: canonical boundary names mirror the legacy alias.
   getDbClient: vi.fn(),
   requireDbClient: () => ({ from: vi.fn() }),
   isDbClientConfigured: vi.fn(() => true),
   createClient: vi.fn(),
+  createServiceRoleClient: vi.fn(),
 
   isSupabaseConfigured: () => true,
 }));
@@ -77,9 +77,13 @@ async function runCronWith(
   // previously imported `createServiceRoleClient` from the legacy
   // `@/lib/supabase/server` shim, but the production route resolves it
   // from `@/lib/db/access` (DB-015 boundary). Mock the actual import
-  // path the route uses.
-  const { createServiceRoleClient } = await import("@/lib/db/access");
+  // path the route uses. The route uses `getDbClient()` (not
+  // `createServiceRoleClient()`) — see route.ts line 41 — so we
+  // also mock that path.
+  const { getDbClient, createServiceRoleClient } =
+    await import("@/lib/db/access");
   const mockClient = makeMockClient([]);
+  (getDbClient as ReturnType<typeof vi.fn>).mockReturnValue(mockClient);
   (createServiceRoleClient as ReturnType<typeof vi.fn>).mockReturnValue(
     mockClient,
   );
@@ -158,7 +162,11 @@ describe("POST /api/market/supply/aggregate — V-032 / PR-BP-2", () => {
       rows: [
         {
           full_state: {},
-          market_supply: { production: {}, actualConsumption: {}, updatedAt: "x" },
+          market_supply: {
+            production: {},
+            actualConsumption: {},
+            updatedAt: "x",
+          },
         },
         {
           full_state: {},
@@ -195,7 +203,11 @@ describe("POST /api/market/supply/aggregate — V-032 / PR-BP-2", () => {
               actualConsumption: { iron: 999 },
             },
           },
-          market_supply: { production: {}, actualConsumption: {}, updatedAt: "x" },
+          market_supply: {
+            production: {},
+            actualConsumption: {},
+            updatedAt: "x",
+          },
         },
       ],
       hasMore: false,

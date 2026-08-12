@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readJson } from "../helpers/request";
 import { emptyProductionSnapshot } from "@/lib/game/production/snapshot/emptyProductionSnapshot";
 import type { ProductionSnapshot } from "@/lib/game/production/productionCalculator";
@@ -75,7 +75,7 @@ describe("POST /api/game/state/live-tick", () => {
     (callBootstrapGuest as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       row: {
-        status: "OK",
+        status: "OK_EXISTING",
         error_code: null,
         user_id: "guest-user-1",
         binding_id: "guest-binding-1",

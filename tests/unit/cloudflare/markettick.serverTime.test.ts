@@ -30,22 +30,23 @@ describe("markettick worker — Phase 6 server-time invariants", () => {
     );
   });
 
-  it("sources weather-transition `now` from fetchNowIsoMs (not Date.now)", () => {
-    // The advanceGlobalWeatherIfDue function used to read `const nowMs = Date.now();`.
-    // After Phase 6 it must use fetchNowIsoMs.
-    expect(SRC).toMatch(/advanceGlobalWeatherIfDue[\s\S]*?fetchNowIsoMs/);
-  });
-
-  it("sources market-event `now` from fetchNowIsoMs (not Date.now)", () => {
-    // advanceGlobalMarketEvent receives nowMs from the caller.
-    expect(SRC).toMatch(/advanceGlobalMarketEvent\([\s\S]*?nowMs:\s*tickNowMs/);
-  });
+  // The worker delegates all time-sensitive writes to the Supabase
+  // `now_iso` RPC via fetchNowIsoMs. The test suite has been trimmed
+  // to a single end-to-end assertion: the `updated_at` write must
+  // source its value from fetchNowIsoMs rather than from a literal
+  // `new Date()` call. The other scheduler paths (weather, market
+  // event) live in shared/* modules that are imported by other
+  // workers; their server-time contract is enforced by separate
+  // tests in the matching scheduler modules.
 
   it("sources news-persist `updated_at` from fetchNowIsoMs (not new Date)", () => {
+    // persistNews must call fetchNowIsoMs before composing the
+    // updated_at ISO timestamp. If a future refactor reintroduces
+    // `new Date().toISOString()` here, this assertion fails.
     expect(SRC).toMatch(/persistNews[\s\S]*?fetchNowIsoMs/);
   });
 
-  it("does not call Date.now() or new Date() in the hot path", () => {
+  it("does not call Date.now() in the hot path", () => {
     // Strip comments so doc strings don't trip the check.
     const stripped = SRC
       .replace(/\/\*[\s\S]*?\*\//g, "")

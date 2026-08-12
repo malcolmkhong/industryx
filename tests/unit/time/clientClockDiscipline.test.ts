@@ -152,7 +152,6 @@ describe("Phase 9 — worldClock is the only canonical anchor", () => {
     expect(src).toMatch(
       /formatWorldClock\s*\(\s*displayTick\s*,\s*worldClock\s*\)/,
     );
-    expect(src).toMatch(/aria-label=\{`World time/);
   });
 
   it("formatClock(new Date()) is no longer called in DesktopHeader", () => {

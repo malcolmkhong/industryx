@@ -129,8 +129,11 @@ describe('Tier Centralization SSOT', () => {
       // is `@/lib/db/access` and is already mocked above). Without a
       // live DB connection, this assertion is best expressed as "MAX_TIER
       // matches TIER_INFO.length - 1".
-      const lastTier = TIER_INFO[TIER_INFO.length - 1];
-      expect(lastTier.tier).toBe(MAX_TIER);
+      //
+      // Note: TIER_INFO entries are indexed by tier number (no `tier`
+      // field per entry — index == tier). The invariant is therefore
+      // MAX_TIER === TIER_INFO.length - 1.
+      expect(MAX_TIER).toBe(TIER_INFO.length - 1);
     });
   });
 });

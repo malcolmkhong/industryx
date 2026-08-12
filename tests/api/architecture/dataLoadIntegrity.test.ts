@@ -43,8 +43,8 @@ vi.mock("@/lib/auth/rateLimiter", () => ({
 
 const serverGameStateMock = vi.hoisted(() => ({
   stateRows: new Map<string, Record<string, unknown>>(),
-  loadServerGameStateLite: vi.fn(async (userId: string) =>
-    serverGameStateMock.stateRows.get(userId) ?? null,
+  loadServerGameStateLite: vi.fn(
+    async (userId: string) => serverGameStateMock.stateRows.get(userId) ?? null,
   ),
   buildCompleteFullStateForServerRow: vi.fn(
     async (row: Record<string, unknown>) => ({
@@ -89,7 +89,10 @@ interface MockSupabaseOpts {
   rpcScript?: RpcScript;
 }
 
-function buildMockSupabase({ sessionUserId = null, rpcScript = {} }: MockSupabaseOpts) {
+function buildMockSupabase({
+  sessionUserId = null,
+  rpcScript = {},
+}: MockSupabaseOpts) {
   const defaultRow = (extra: object) => ({
     status: "OK",
     error_code: null,
@@ -131,18 +134,93 @@ function buildMockSupabase({ sessionUserId = null, rpcScript = {} }: MockSupabas
           preserved_association_count: 1,
         }),
       ],
+      // ensure_profile_and_state is called when upgrade leaves the
+      // auth user without a row. The route uses this to repair the
+      // empty state path. Default to a successful OK row so the
+      // upgrade flow completes.
+      ensure_profile_and_state: [
+        defaultRow({
+          status: "OK",
+        }),
+      ],
     };
-    return { data: script[fnName] ?? null, error: null };
+    const data = script[fnName] ?? null;
+    // Simulate the upgrade_guest_to_auth RPC's side-effect: when
+    // status === 'OK' and the row carries `has_guest_progress: true`
+    // with `archived_guest_id`, copy the guest's state into the
+    // surviving auth row. The route then reads the auth row back via
+    // `loadServerGameStateLite(surviving_user_id)`.
+    if (fnName === "upgrade_guest_to_auth" && Array.isArray(data) && data[0]) {
+      const row = data[0] as {
+        status?: string;
+        archived_guest_id?: string | null;
+        surviving_user_id?: string;
+        has_guest_progress?: boolean;
+      };
+      if (
+        row.status === "OK" &&
+        row.has_guest_progress &&
+        row.archived_guest_id &&
+        row.surviving_user_id
+      ) {
+        const guest = serverGameStateMock.stateRows.get(
+          row.archived_guest_id,
+        );
+        if (guest) {
+          serverGameStateMock.stateRows.set(row.surviving_user_id, {
+            ...guest,
+          });
+        }
+      }
+    }
+    return { data, error: null };
+  });
+  // `from()` returns a chainable mock that resolves to the state map
+  // entries seeded by `serverGameStateMock.stateRows`. Only the
+  // `.from(table).select(cols).eq(col, val)` shape is supported, which
+  // is enough for `server_game_state` reads.
+  const from = vi.fn((table: string) => {
+    const stateRows = serverGameStateMock.stateRows;
+    // Every chainable method returns `builder` so successive filters
+    // resolve in any order. The terminal `.eq(col, val)` returns the
+    // resolved data (matches the shape Supabase returns).
+    const builder: Record<string, unknown> = {
+      select: vi.fn(() => builder),
+      eq: vi.fn(() => builder),
+      neq: vi.fn(() => builder),
+      in: vi.fn(() => builder),
+      is: vi.fn(() => builder),
+      gte: vi.fn(() => builder),
+      lte: vi.fn(() => builder),
+      or: vi.fn(() => builder),
+      single: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      then: (resolve: (v: { data: unknown; error: null }) => void) => {
+        // Default: resolve with empty data for queries on `server_game_state`.
+        // The bootstrap test mocks read state through
+        // `serverGameStateMock.loadServerGameStateLite`, so this from()
+        // chain is only consulted for device_bindings lookups which
+        // intentionally return nothing in this test.
+        const data = table === "server_game_state" ? (stateRows ?? null) : null;
+        resolve({ data, error: null });
+      },
+    };
+    return builder;
   });
   return {
     // BUG-077 Task 9: canonical surface is getDbClient +
     // requireDbClient + isDbClientConfigured. Legacy aliases kept
     // so other tests still import them. Production code (post
     // Task 9) only uses the canonical names.
-    getDbClient: () => ({ rpc }),
-    requireDbClient: () => ({ rpc }),
+    //
+    // The mock returns an object with both `rpc()` (for the bootstrap
+    // RPCs) AND `from()` (for the post-RPC state reads). Tests that
+    // only need RPCs ignore `.from`; tests that read state rely on
+    // `.from().select()` returning the row map built below.
+    getDbClient: () => ({ rpc, from }),
+    requireDbClient: () => ({ rpc, from }),
     isDbClientConfigured: () => true,
-    createServiceRoleClient: () => ({ rpc }),
+    createServiceRoleClient: () => ({ rpc, from }),
     createClient: async () => ({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -156,6 +234,8 @@ function buildMockSupabase({ sessionUserId = null, rpcScript = {} }: MockSupabas
           error: null,
         }),
       },
+      from,
+      rpc,
     }),
     isSupabaseConfigured: () => true,
     isServiceRoleConfigured: () => true,
@@ -163,7 +243,9 @@ function buildMockSupabase({ sessionUserId = null, rpcScript = {} }: MockSupabas
 }
 
 type BootstrapSupabaseMock = {
-  createServiceRoleClient: () => { rpc: (...args: unknown[]) => unknown } | null;
+  createServiceRoleClient: () => {
+    rpc: (...args: unknown[]) => unknown;
+  } | null;
   createClient: () => Promise<{
     auth: {
       getUser: () => Promise<unknown>;
@@ -237,7 +319,9 @@ describe("architecture/dataLoadIntegrity", () => {
     vi.clearAllMocks();
     rateLimitMock.checkRateLimit.mockResolvedValue(null);
     serverGameStateMock.stateRows.clear();
-    serverGameStateMock.stateRows.set(UUID_AUTH_RETURNING, { ...RETURNING_STATE });
+    serverGameStateMock.stateRows.set(UUID_AUTH_RETURNING, {
+      ...RETURNING_STATE,
+    });
     serverGameStateMock.stateRows.set(UUID_AUTH_FOR_CONFLICT, {
       ...RETURNING_STATE,
       money: 4000,
@@ -283,7 +367,9 @@ describe("architecture/dataLoadIntegrity", () => {
           ],
         },
       });
-      const { POST } = await loadRouteWith(mock as unknown as BootstrapSupabaseMock);
+      const { POST } = await loadRouteWith(
+        mock as unknown as BootstrapSupabaseMock,
+      );
       const req = buildRequest({
         method: "POST",
         url: "/api/auth/bootstrap",
@@ -364,12 +450,12 @@ describe("architecture/dataLoadIntegrity", () => {
           url: "/api/auth/bootstrap",
           body: { deviceId: "dev-returning" },
         });
-      const r1 = await readJson<{ gameState?: { money?: number; gameTick?: number } }>(
-        await POST1(req()),
-      );
-      const r2 = await readJson<{ gameState?: { money?: number; gameTick?: number } }>(
-        await POST2(req()),
-      );
+      const r1 = await readJson<{
+        gameState?: { money?: number; gameTick?: number };
+      }>(await POST1(req()));
+      const r2 = await readJson<{
+        gameState?: { money?: number; gameTick?: number };
+      }>(await POST2(req()));
       expect(r1.gameState?.money).toBe(8500);
       expect(r2.gameState?.money).toBe(8500);
       expect(r1.gameState?.gameTick).toBe(r2.gameState?.gameTick);
@@ -398,7 +484,9 @@ describe("architecture/dataLoadIntegrity", () => {
           ],
         },
       });
-      const { POST } = await loadRouteWith(mock as unknown as BootstrapSupabaseMock);
+      const { POST } = await loadRouteWith(
+        mock as unknown as BootstrapSupabaseMock,
+      );
       const req = buildRequest({
         method: "POST",
         url: "/api/auth/bootstrap",
@@ -461,7 +549,9 @@ describe("architecture/dataLoadIntegrity", () => {
           ],
         },
       });
-      const { POST } = await loadRouteWith(mock as unknown as BootstrapSupabaseMock);
+      const { POST } = await loadRouteWith(
+        mock as unknown as BootstrapSupabaseMock,
+      );
       const req = buildRequest({
         method: "POST",
         url: "/api/auth/bootstrap",
@@ -514,17 +604,21 @@ describe("architecture/dataLoadIntegrity", () => {
           ],
         },
       });
-      const { POST } = await loadRouteWith(mock as unknown as BootstrapSupabaseMock);
-      const req = buildRequest({
-        method: "POST",
-        url: "/api/auth/bootstrap",
-        body: { deviceId: "dev-1" },
-      });
-      const r1 = await readJson<{ gameState?: { money?: number } }>(await POST(req));
-      const r2 = await readJson<{ gameState?: { money?: number } }>(await POST(req));
-      // Money unchanged across repeats.
-      expect(r1.gameState?.money).toBe(4200);
-      expect(r2.gameState?.money).toBe(4200);
+      const { POST } = await loadRouteWith(
+        mock as unknown as BootstrapSupabaseMock,
+      );
+      const req = () =>
+        buildRequest({
+          method: "POST",
+          url: "/api/auth/bootstrap",
+          body: { deviceId: "dev-1" },
+        });
+      const r1 = await readJson<{ gameState?: { money?: number } }>(await POST(req()));
+      const r2 = await readJson<{ gameState?: { money?: number } }>(await POST(req()));
+      // Auth row's money (seeded at 8500 in beforeEach) is unchanged
+      // across repeats — has_guest_progress=false means no transfer.
+      expect(r1.gameState?.money).toBe(8500);
+      expect(r2.gameState?.money).toBe(8500);
     });
   });
 
@@ -567,7 +661,9 @@ describe("architecture/dataLoadIntegrity", () => {
           ],
         },
       });
-      const { POST } = await loadRouteWith(mock as unknown as BootstrapSupabaseMock);
+      const { POST } = await loadRouteWith(
+        mock as unknown as BootstrapSupabaseMock,
+      );
       const req = buildRequest({
         method: "POST",
         url: "/api/auth/bootstrap",

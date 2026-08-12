@@ -36,6 +36,10 @@ export default defineConfig({
       // Legacy node:test files — run via `npm test` (tsx --test), not Vitest
       'tests/integration/**',
       'tests/security/**',
+      // Playwright E2E tests — run via `npx playwright test`, not Vitest.
+      // They use `test.describe()` from @playwright/test which is
+      // incompatible with vitest's runtime.
+      'tests/e2e/**',
     ],
     // happy-dom is lighter than jsdom and works for our React components
     environment: 'happy-dom',
