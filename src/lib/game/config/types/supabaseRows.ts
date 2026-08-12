@@ -77,6 +77,9 @@ export interface SupabaseWeather {
   production_multiplier: number;
   solar_multiplier: number;
   wind_multiplier: number;
+  // Added in a later migration; older game_config_weather rows don't
+  // have this column and the transformer falls back to 1.0.
+  transport_multiplier?: number;
   description: string;
   sort_order: number;
 }
