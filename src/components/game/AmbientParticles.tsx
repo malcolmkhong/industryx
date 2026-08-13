@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useReducedMotion } from "@/components/game/shared/useReducedMotion";
 
 interface Particle {
@@ -24,7 +24,6 @@ const PARTICLE_COLORS = [
 ];
 
 export default function AmbientParticles() {
-  const [mounted, setMounted] = useState(false);
   const reducedMotion = useReducedMotion();
 
   // A5 (REAL-DEFECT-A5): SEC-008 forbids Math.random for any
@@ -33,6 +32,11 @@ export default function AmbientParticles() {
   // rule to any id-shaped context. Use a deterministic mulberry32
   // PRNG seeded from a constant so the visual output is stable
   // across mounts (also makes E2E snapshots deterministic).
+  //
+  // Particles are deterministic across server and client, so we no
+  // longer need the previous `mounted` gate (which caused a cascading
+  // render via setState-in-effect). Render the same markup on both
+  // sides — the empty placeholder below mirrors the SSR snapshot.
   const particles = useMemo<Particle[]>(() => {
     const count = 18;
     const rng = mulberry32(0xc0ffee);
@@ -48,11 +52,9 @@ export default function AmbientParticles() {
     }));
   }, []);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
+  // Reduced-motion and SSR placeholder share the same empty markup
+  // so React's hydration is identical.
+  if (reducedMotion) {
     return (
       <div
         className="absolute inset-0 overflow-hidden pointer-events-none"

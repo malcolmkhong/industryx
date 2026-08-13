@@ -283,7 +283,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userId,
           isGuest,
           isNewUser,
-          needsStateLoad,
           gameState,
         }): Promise<void> => {
           try {
